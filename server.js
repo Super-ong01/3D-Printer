@@ -113,7 +113,22 @@ app.post('/slice', upload.single('file'), async (req, res) => {
 
     console.log('Running slicer:', cmd);
 
-    await runCommand(cmd, 120000); // timeout 2 นาที
+    await runCommand(cmd, 120000);
+
+    // DEBUG: แสดง 80 บรรทัดแรกของ gcode เพื่อดู comment format
+    if (fs.existsSync(gcodeFile)) {
+      const debugLines = fs.readFileSync(gcodeFile, 'utf8').split('\n').slice(0, 80);
+      console.log('=== GCODE HEAD ===');
+      debugLines.forEach((l, i) => console.log(i, l));
+      // แสดง 30 บรรทัดท้ายด้วย เพราะบาง slicer ใส่ข้อมูลไว้ท้ายไฟล์
+      const allLines = fs.readFileSync(gcodeFile, 'utf8').split('\n');
+      const tailLines = allLines.slice(Math.max(0, allLines.length - 30));
+      console.log('=== GCODE TAIL ===');
+      tailLines.forEach((l, i) => console.log(allLines.length - 30 + i, l));
+      console.log('==================');
+    } else {
+      console.log('ERROR: gcode file not created!');
+    }
 
     // ===== PARSE GCODE RESULT =====
     const result = parseGcode(gcodeFile);
@@ -137,71 +152,110 @@ app.post('/slice', upload.single('file'), async (req, res) => {
 });
 
 // ===== PARSE GCODE =====
-// รองรับ Bambu Studio, OrcaSlicer, Cura, PrusaSlicer
+// รองรับ PrusaSlicer, Bambu Studio, OrcaSlicer, Cura
 function parseGcode(gcodeFile) {
   if (!fs.existsSync(gcodeFile)) throw new Error('ไม่พบไฟล์ gcode');
 
   const text = fs.readFileSync(gcodeFile, 'utf8');
   const lines = text.split('\n');
 
-  let weight = null, timeHrs = null, timeStr = null, filamentM = null, layers = null;
+  let weight = null, timeHrs = null, timeStr = null, filamentMM3 = null, filamentM = null, layers = null;
+
+  // Debug: print first 50 comment lines
+  const commentLines = lines.filter(l => l.trim().startsWith(';')).slice(0, 50);
+  console.log('=== GCODE COMMENTS (first 50) ===');
+  commentLines.forEach(l => console.log(l));
+  console.log('=================================');
 
   for (const line of lines) {
     const t = line.trim();
+    if (!t.startsWith(';')) continue;
 
-    // === Bambu Studio / OrcaSlicer ===
-    // ; filament used [g] = 12.34
+    // === น้ำหนัก/ปริมาณ filament ===
+
+    // PrusaSlicer: ; filament used [g] = 12.34
     if (!weight) {
       const m = t.match(/;\s*filament\s+used\s*\[g\]\s*=\s*([\d.]+)/i);
-      if (m) weight = parseFloat(m[1]);
-    }
-    // ; estimated printing time = 1h 23m 45s
-    if (!timeStr) {
-      const m = t.match(/;\s*estimated\s+printing\s+time\s*=\s*(.+)/i);
-      if (m) { timeStr = m[1].trim(); timeHrs = parseTimeStr(timeStr); }
-    }
-    // ; total layers count = 456
-    if (!layers) {
-      const m = t.match(/;\s*total\s+layer(?:s)?\s+(?:count\s*)?=\s*(\d+)/i);
-      if (m) layers = parseInt(m[1]);
+      if (m) { weight = parseFloat(m[1]); console.log('weight [g]:', weight); }
     }
 
-    // === Cura ===
-    // ;Filament used: 1.23456m
-    if (!filamentM) {
-      const m = t.match(/;Filament\s+used:\s*([\d.]+)m/i);
+    // PrusaSlicer: ; filament used [mm3] = 12345.67
+    if (!weight) {
+      const m = t.match(/;\s*filament\s+used\s*\[mm3?\]\s*=\s*([\d.]+)/i);
       if (m) {
-        filamentM = parseFloat(m[1]);
-        // แปลงจากเมตรเป็นกรัม (เส้นผ่าน 1.75mm, density PLA ~1.24 g/cm³)
-        if (!weight) weight = filamentM * Math.PI * (0.0875**2) * 100 * 1.24;
+        filamentMM3 = parseFloat(m[1]);
+        weight = filamentMM3 * 1.24 / 1000; // mm³ × density PLA / 1000 = กรัม
+        console.log('weight from mm3:', weight);
       }
     }
-    // ;TIME:4567
+
+    // PrusaSlicer: ; filament used [cm3] = 12.34
+    if (!weight) {
+      const m = t.match(/;\s*filament\s+used\s*\[cm3?\]\s*=\s*([\d.]+)/i);
+      if (m) {
+        weight = parseFloat(m[1]) * 1.24; // cm³ × density = กรัม
+        console.log('weight from cm3:', weight);
+      }
+    }
+
+    // Cura: ;Filament used: 1.23456m
+    if (!weight) {
+      const m = t.match(/;Filament\s+used:\s*([\d.]+)m$/i);
+      if (m) {
+        filamentM = parseFloat(m[1]);
+        weight = filamentM * Math.PI * (0.0875 ** 2) * 100 * 1.24;
+        console.log('weight from meters:', weight);
+      }
+    }
+
+    // Bambu/Orca: ; total filament weight [g] = 12.34
+    if (!weight) {
+      const m = t.match(/;\s*total\s+filament\s+weight\s*\[g\]\s*=\s*([\d.]+)/i);
+      if (m) { weight = parseFloat(m[1]); console.log('weight total [g]:', weight); }
+    }
+
+    // === เวลาพิมพ์ ===
+
+    // PrusaSlicer: ; estimated printing time (normal mode) = 1h 23m 45s
     if (!timeHrs) {
-      const m = t.match(/^;TIME:(\d+)/);
+      const m = t.match(/;\s*estimated\s+printing\s+time.*?=\s*(.+)/i);
+      if (m) {
+        timeStr = m[1].trim();
+        timeHrs = parseTimeStr(timeStr);
+        console.log('time:', timeStr, '=', timeHrs, 'hrs');
+      }
+    }
+
+    // Cura: ;TIME:4567
+    if (!timeHrs) {
+      const m = t.match(/^;TIME:(\d+)$/);
       if (m) {
         const secs = parseInt(m[1]);
         timeHrs = secs / 3600;
         timeStr = formatSecs(secs);
+        console.log('time from Cura TIME:', timeStr);
       }
     }
 
-    // === PrusaSlicer ===
-    // ; estimated printing time (normal mode) = 1h 23m 45s
-    if (!timeStr) {
-      const m = t.match(/;\s*estimated\s+printing\s+time.*=\s*(.+)/i);
-      if (m) { timeStr = m[1].trim(); timeHrs = parseTimeStr(timeStr); }
+    // === Layer count ===
+    if (!layers) {
+      const m = t.match(/;\s*(?:total\s+)?layers?\s*(?:count\s*)?[:=]\s*(\d+)/i);
+      if (m) layers = parseInt(m[1]);
     }
   }
 
-  if (!weight || !timeHrs) throw new Error('ไม่สามารถ parse ข้อมูลจาก gcode ได้');
+  console.log('Final: weight=', weight, 'timeHrs=', timeHrs);
+
+  if (!weight && !timeHrs) throw new Error('ไม่สามารถ parse ข้อมูลจาก gcode ได้ — ดู server log สำหรับ debug');
+  if (!weight) weight = 0;
+  if (!timeHrs) timeHrs = 0;
 
   return {
-    weight:     Math.round(weight * 100) / 100,
-    timeHrs:    Math.round(timeHrs * 100) / 100,
-    timeStr:    timeStr || formatSecs(Math.round(timeHrs * 3600)),
-    filamentM:  filamentM ? Math.round(filamentM * 100) / 100 : null,
-    layers:     layers || null,
+    weight:    Math.round(weight * 100) / 100,
+    timeHrs:   Math.round(timeHrs * 100) / 100,
+    timeStr:   timeStr || formatSecs(Math.round(timeHrs * 3600)),
+    filamentM: filamentM ? Math.round(filamentM * 100) / 100 : null,
+    layers:    layers || null,
   };
 }
 
