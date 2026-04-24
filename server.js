@@ -89,13 +89,11 @@ app.post('/slice', upload.single('file'), async (req, res) => {
 
   try {
     // ===== BUILD PRUSASLICER COMMAND =====
-    // PrusaSlicer CLI syntax ต่างจาก OrcaSlicer
     const infillPct = parseInt(infill);
     const sx = parseFloat(scale_x), sy = parseFloat(scale_y), sz = parseFloat(scale_z);
 
-    // scale ถ้าไม่ใช่ 1
     const scaleArg = (sx !== 1 || sy !== 1 || sz !== 1)
-      ? `--scale-to-fit ${sx * 100},${sy * 100},${sz * 100}`
+      ? `--scale ${sx * 100},${sy * 100},${sz * 100}`
       : '';
 
     const layerMM = layer || '0.16';
@@ -106,29 +104,16 @@ app.post('/slice', upload.single('file'), async (req, res) => {
       `--layer-height ${layerMM}`,
       `--fill-density ${infillPct}%`,
       `--fill-pattern grid`,
+      '--support-material',            // เปิด support อัตโนมัติ
+      '--support-material-auto',       // auto detect
+      '--support-material-threshold 45', // angle threshold
       scaleArg,
       '--output', `"${gcodeFile}"`,
       `"${inputFile}"`
     ].filter(Boolean).join(' ');
 
     console.log('Running slicer:', cmd);
-
-    await runCommand(cmd, 120000);
-
-    // DEBUG: แสดง 80 บรรทัดแรกของ gcode เพื่อดู comment format
-    if (fs.existsSync(gcodeFile)) {
-      const debugLines = fs.readFileSync(gcodeFile, 'utf8').split('\n').slice(0, 80);
-      console.log('=== GCODE HEAD ===');
-      debugLines.forEach((l, i) => console.log(i, l));
-      // แสดง 30 บรรทัดท้ายด้วย เพราะบาง slicer ใส่ข้อมูลไว้ท้ายไฟล์
-      const allLines = fs.readFileSync(gcodeFile, 'utf8').split('\n');
-      const tailLines = allLines.slice(Math.max(0, allLines.length - 30));
-      console.log('=== GCODE TAIL ===');
-      tailLines.forEach((l, i) => console.log(allLines.length - 30 + i, l));
-      console.log('==================');
-    } else {
-      console.log('ERROR: gcode file not created!');
-    }
+    await runCommand(cmd, 180000); // timeout 3 นาที (เพราะมี support)
 
     // ===== PARSE GCODE RESULT =====
     const result = parseGcode(gcodeFile);
@@ -152,101 +137,76 @@ app.post('/slice', upload.single('file'), async (req, res) => {
 });
 
 // ===== PARSE GCODE =====
-// รองรับ PrusaSlicer, Bambu Studio, OrcaSlicer, Cura
 function parseGcode(gcodeFile) {
   if (!fs.existsSync(gcodeFile)) throw new Error('ไม่พบไฟล์ gcode');
 
   const text = fs.readFileSync(gcodeFile, 'utf8');
   const lines = text.split('\n');
 
-  let weight = null, timeHrs = null, timeStr = null, filamentMM3 = null, filamentM = null, layers = null;
-
-  // Debug: print first 50 comment lines
-  const commentLines = lines.filter(l => l.trim().startsWith(';')).slice(0, 50);
-  console.log('=== GCODE COMMENTS (first 50) ===');
-  commentLines.forEach(l => console.log(l));
-  console.log('=================================');
+  let weight = null, timeHrs = null, timeStr = null, filamentM = null, layers = null;
+  let totalWeightG = 0; // รวม weight จากทุก extruder (model + support)
 
   for (const line of lines) {
     const t = line.trim();
     if (!t.startsWith(';')) continue;
 
-    // === น้ำหนัก/ปริมาณ filament ===
-
     // PrusaSlicer: ; filament used [g] = 12.34
-    if (!weight) {
-      const m = t.match(/;\s*filament\s+used\s*\[g\]\s*=\s*([\d.]+)/i);
-      if (m) { weight = parseFloat(m[1]); console.log('weight [g]:', weight); }
+    // อาจมีหลายบรรทัดสำหรับแต่ละ extruder — sum ทั้งหมด
+    const mG = t.match(/;\s*filament\s+used\s*\[g\]\s*=\s*([\d.]+)/i);
+    if (mG) totalWeightG += parseFloat(mG[1]);
+
+    // PrusaSlicer: ; filament used [mm3] = 12345.67 → แปลงเป็น g
+    if (totalWeightG === 0) {
+      const mMM3 = t.match(/;\s*filament\s+used\s*\[mm3?\]\s*=\s*([\d.]+)/i);
+      if (mMM3) totalWeightG += parseFloat(mMM3[1]) * 1.24 / 1000;
     }
 
-    // PrusaSlicer: ; filament used [mm3] = 12345.67
-    if (!weight) {
-      const m = t.match(/;\s*filament\s+used\s*\[mm3?\]\s*=\s*([\d.]+)/i);
-      if (m) {
-        filamentMM3 = parseFloat(m[1]);
-        weight = filamentMM3 * 1.24 / 1000; // mm³ × density PLA / 1000 = กรัม
-        console.log('weight from mm3:', weight);
-      }
-    }
-
-    // PrusaSlicer: ; filament used [cm3] = 12.34
-    if (!weight) {
-      const m = t.match(/;\s*filament\s+used\s*\[cm3?\]\s*=\s*([\d.]+)/i);
-      if (m) {
-        weight = parseFloat(m[1]) * 1.24; // cm³ × density = กรัม
-        console.log('weight from cm3:', weight);
-      }
+    // PrusaSlicer: ; filament used [cm3] = 12.34 → แปลงเป็น g
+    if (totalWeightG === 0) {
+      const mCM3 = t.match(/;\s*filament\s+used\s*\[cm3?\]\s*=\s*([\d.]+)/i);
+      if (mCM3) totalWeightG += parseFloat(mCM3[1]) * 1.24;
     }
 
     // Cura: ;Filament used: 1.23456m
-    if (!weight) {
-      const m = t.match(/;Filament\s+used:\s*([\d.]+)m$/i);
-      if (m) {
-        filamentM = parseFloat(m[1]);
-        weight = filamentM * Math.PI * (0.0875 ** 2) * 100 * 1.24;
-        console.log('weight from meters:', weight);
-      }
-    }
-
-    // Bambu/Orca: ; total filament weight [g] = 12.34
-    if (!weight) {
-      const m = t.match(/;\s*total\s+filament\s+weight\s*\[g\]\s*=\s*([\d.]+)/i);
-      if (m) { weight = parseFloat(m[1]); console.log('weight total [g]:', weight); }
-    }
-
-    // === เวลาพิมพ์ ===
-
-    // PrusaSlicer: ; estimated printing time (normal mode) = 1h 23m 45s
-    if (!timeHrs) {
-      const m = t.match(/;\s*estimated\s+printing\s+time.*?=\s*(.+)/i);
-      if (m) {
-        timeStr = m[1].trim();
-        timeHrs = parseTimeStr(timeStr);
-        console.log('time:', timeStr, '=', timeHrs, 'hrs');
+    if (!filamentM) {
+      const mM = t.match(/;Filament\s+used:\s*([\d.]+)m$/i);
+      if (mM) {
+        filamentM = parseFloat(mM[1]);
+        if (totalWeightG === 0) totalWeightG = filamentM * Math.PI * (0.0875 ** 2) * 100 * 1.24;
       }
     }
 
     // Cura: ;TIME:4567
     if (!timeHrs) {
-      const m = t.match(/^;TIME:(\d+)$/);
-      if (m) {
-        const secs = parseInt(m[1]);
+      const mT = t.match(/^;TIME:(\d+)$/);
+      if (mT) {
+        const secs = parseInt(mT[1]);
         timeHrs = secs / 3600;
         timeStr = formatSecs(secs);
-        console.log('time from Cura TIME:', timeStr);
       }
     }
 
-    // === Layer count ===
+    // PrusaSlicer / OrcaSlicer / Bambu: ; estimated printing time ... = 1h 23m 45s
+    if (!timeHrs) {
+      const mTime = t.match(/;\s*estimated\s+printing\s+time.*?=\s*(.+)/i);
+      if (mTime) {
+        timeStr = mTime[1].trim();
+        timeHrs = parseTimeStr(timeStr);
+      }
+    }
+
+    // Layer count
     if (!layers) {
-      const m = t.match(/;\s*(?:total\s+)?layers?\s*(?:count\s*)?[:=]\s*(\d+)/i);
-      if (m) layers = parseInt(m[1]);
+      const mL = t.match(/;\s*(?:total\s+)?layers?\s*(?:count\s*)?[:=]\s*(\d+)/i);
+      if (mL) layers = parseInt(mL[1]);
     }
   }
 
-  console.log('Final: weight=', weight, 'timeHrs=', timeHrs);
+  if (totalWeightG > 0) weight = totalWeightG;
 
-  if (!weight && !timeHrs) throw new Error('ไม่สามารถ parse ข้อมูลจาก gcode ได้ — ดู server log สำหรับ debug');
+  console.log('Parsed: weight=', weight, 'timeHrs=', timeHrs, 'timeStr=', timeStr);
+
+  if (!weight && !timeHrs) throw new Error('ไม่สามารถ parse ข้อมูลจาก gcode ได้');
   if (!weight) weight = 0;
   if (!timeHrs) timeHrs = 0;
 
