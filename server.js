@@ -206,25 +206,27 @@ function parseGcode(gcodeFile, infill = '25') {
 
   console.log('Parsed: weight=', weight, 'timeHrs=', timeHrs, 'timeStr=', timeStr);
 
-  // Correction factor แปรตาม infill %
-  // calibrate กับ Bambu PLA Basic + Bambu Studio:
-  //   infill 15%: ประมาณ 1.45 (interpolated)
+  // Correction factor calibrate กับ Bambu PLA Basic จริง 3 จุด:
+  //   infill 15%: 44.26 / 32.7  = 1.353
   //   infill 25%: 54.07 / 36.65 = 1.476
-  //   infill 50%: ประมาณ 1.65 (interpolated)
   //   infill 80%: 107.44 / 57.25 = 1.877
-  // interpolate เป็น linear ระหว่างจุดที่วัดได้
   const infillNum = parseInt(infill) || 25;
   let WEIGHT_CORRECTION;
-  if (infillNum <= 15)       WEIGHT_CORRECTION = 1.45;
-  else if (infillNum <= 25)  WEIGHT_CORRECTION = 1.45 + (infillNum - 15) / 10 * (1.476 - 1.45);
-  else if (infillNum <= 50)  WEIGHT_CORRECTION = 1.476 + (infillNum - 25) / 25 * (1.65 - 1.476);
-  else                       WEIGHT_CORRECTION = 1.65 + (infillNum - 50) / 30 * (1.877 - 1.65);
+  if (infillNum <= 15)       WEIGHT_CORRECTION = 1.353;
+  else if (infillNum <= 25)  WEIGHT_CORRECTION = 1.353 + (infillNum - 15) / 10 * (1.476 - 1.353);
+  else if (infillNum <= 80)  WEIGHT_CORRECTION = 1.476 + (infillNum - 25) / 55 * (1.877 - 1.476);
+  else                       WEIGHT_CORRECTION = 1.877;
   if (weight) weight = weight * WEIGHT_CORRECTION;
 
-  // เวลาก็ต้อง correct เพราะ Bambu P1P เร็วกว่า PrusaSlicer default
-  // infill 25%: เวลาตรงแล้ว (ไม่ correct)
-  // infill 80%: Bambu 14h53m / เว็บ 10h39m = 1.40
-  const TIME_CORRECTION = infillNum <= 25 ? 1.0 : 1.0 + (infillNum - 25) / 55 * 0.40;
+  // Time correction calibrate จาก 3 จุด:
+  //   infill 15%: Bambu 6h48m / เว็บ 7h16m = 0.934 (เว็บมากกว่า ต้องหาร)
+  //   infill 25%: ตรงแล้ว = 1.0
+  //   infill 80%: Bambu 14h53m / เว็บ 10h39m = 1.40
+  let TIME_CORRECTION;
+  if (infillNum <= 15)       TIME_CORRECTION = 0.934;
+  else if (infillNum <= 25)  TIME_CORRECTION = 0.934 + (infillNum - 15) / 10 * (1.0 - 0.934);
+  else if (infillNum <= 80)  TIME_CORRECTION = 1.0 + (infillNum - 25) / 55 * (1.40 - 1.0);
+  else                       TIME_CORRECTION = 1.40;
   if (timeHrs) timeHrs = timeHrs * TIME_CORRECTION;
 
   if (!weight && !timeHrs) throw new Error('ไม่สามารถ parse ข้อมูลจาก gcode ได้');
