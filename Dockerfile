@@ -1,42 +1,35 @@
-# ===== Stage 1: Download OrcaSlicer =====
-FROM ubuntu:22.04 AS orca-download
+# ===== Print3DHub Slicer Backend =====
+# ใช้ PrusaSlicer แทน OrcaSlicer เพราะ headless ได้ดีกว่าบน Linux server
+FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y curl wget ca-certificates && rm -rf /var/lib/apt/lists/*
+# ป้องกัน interactive prompt ระหว่าง apt install
+ENV DEBIAN_FRONTEND=noninteractive
 
-ARG ORCA_VERSION=2.1.1
-RUN wget -q "https://github.com/SoftFever/OrcaSlicer/releases/download/v${ORCA_VERSION}/OrcaSlicer_Linux_V${ORCA_VERSION}.AppImage" \
-    -O /orca-slicer.AppImage && chmod +x /orca-slicer.AppImage
+# ติดตั้ง Node.js 20
+RUN apt-get update && apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
 
-RUN /orca-slicer.AppImage --appimage-extract && \
-    mv squashfs-root /orca-slicer-extracted
-
-# ===== Stage 2: Node.js App =====
-FROM node:20-slim
-
-# ติดตั้ง libraries ทั้งหมดที่ OrcaSlicer ต้องการ รวมถึง libEGL, Mesa, OpenGL
+# ติดตั้ง PrusaSlicer และ dependencies ทั้งหมด
 RUN apt-get update && apt-get install -y \
-    libgl1 \
+    prusa-slicer \
     libgl1-mesa-glx \
-    libgles2 \
-    libegl1 \
+    libglu1-mesa \
     libegl1-mesa \
+    libgles2-mesa \
     libgbm1 \
-    libglib2.0-0 \
-    libdbus-1-3 \
-    libx11-6 libxext6 libxrender1 \
-    libxcb1 libxcb-glx0 \
-    libxi6 libxrandr2 libxss1 \
-    libfontconfig1 libfreetype6 \
-    libstdc++6 libgcc-s1 \
     xvfb \
-    mesa-utils \
+    libdbus-1-3 \
+    libglib2.0-0 \
+    libfontconfig1 \
+    libxrender1 \
+    libxi6 \
+    libxrandr2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY --from=orca-download /orca-slicer-extracted /app/orca-slicer
-RUN ln -s /app/orca-slicer/AppRun /usr/local/bin/orca-slicer
-
+# Copy Node.js app
 COPY package*.json ./
 RUN npm ci --only=production
 
@@ -44,12 +37,10 @@ COPY server.js ./
 COPY profiles/ ./profiles/
 
 ENV PORT=3000
-ENV ORCA_BIN=/usr/local/bin/orca-slicer
+ENV ORCA_BIN=prusa-slicer
 ENV NODE_ENV=production
-# บอก Mesa ให้ใช้ software rendering แทน GPU (เพราะ Railway ไม่มี GPU)
 ENV LIBGL_ALWAYS_SOFTWARE=1
-ENV GALLIUM_DRIVER=llvmpipe
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "xvfb-run --auto-servernum --server-args='-screen 0 1024x768x24' node server.js"]
+CMD ["sh", "-c", "xvfb-run --auto-servernum node server.js"]

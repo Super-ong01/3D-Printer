@@ -80,23 +80,28 @@ app.post('/slice', upload.single('file'), async (req, res) => {
   const gcodeFile  = path.join(outputDir, 'output.gcode');
 
   try {
-    // ===== BUILD ORCASLICER COMMAND =====
-    const filamentProfile = FILAMENT_PROFILES[material] || FILAMENT_PROFILES['PLA'];
-    const layerProfile    = LAYER_PROFILES[layer]       || LAYER_PROFILES['0.16'];
-    const infillPct       = parseInt(infill);
+    // ===== BUILD PRUSASLICER COMMAND =====
+    // PrusaSlicer CLI syntax ต่างจาก OrcaSlicer
+    const infillPct = parseInt(infill);
     const sx = parseFloat(scale_x), sy = parseFloat(scale_y), sz = parseFloat(scale_z);
 
+    // scale ถ้าไม่ใช่ 1
+    const scaleArg = (sx !== 1 || sy !== 1 || sz !== 1)
+      ? `--scale-to-fit ${sx * 100},${sy * 100},${sz * 100}`
+      : '';
+
+    const layerMM = layer || '0.16';
+
     const cmd = [
-      ORCA_BIN,
+      'prusa-slicer',
       '--export-gcode',
-      `--load "${PRINTER_PROFILE}"`,
-      `--load "${filamentProfile}"`,
-      `--load "${layerProfile}"`,
-      `--set fill_density=${infillPct}%`,
-      `--scale-to ${sx},${sy},${sz}`,
+      `--layer-height ${layerMM}`,
+      `--fill-density ${infillPct}%`,
+      `--fill-pattern grid`,
+      scaleArg,
       '--output', `"${gcodeFile}"`,
       `"${inputFile}"`
-    ].join(' ');
+    ].filter(Boolean).join(' ');
 
     console.log('Running slicer:', cmd);
 
