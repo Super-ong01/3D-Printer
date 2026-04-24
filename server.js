@@ -266,7 +266,7 @@ function parseGcode(gcodeFile, infill = '25') {
   return {
     weight:    Math.round(weight * 100) / 100,
     timeHrs:   Math.round(timeHrs * 100) / 100,
-    timeStr:   timeStr || formatSecs(Math.round(timeHrs * 3600)),
+    timeStr:   formatSecs(Math.round(timeHrs * 3600)), // format จาก corrected timeHrs เสมอ
     filamentM: filamentM ? Math.round(filamentM * 100) / 100 : null,
     layers:    layers || null,
   };
