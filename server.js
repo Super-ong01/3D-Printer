@@ -116,7 +116,7 @@ app.post('/slice', upload.single('file'), async (req, res) => {
     await runCommand(cmd, 180000); // timeout 3 นาที (เพราะมี support)
 
     // ===== PARSE GCODE RESULT =====
-    const result = parseGcode(gcodeFile);
+    const result = parseGcode(gcodeFile, infill);
     res.json({
       success: true,
       weight_g: result.weight,
@@ -137,7 +137,7 @@ app.post('/slice', upload.single('file'), async (req, res) => {
 });
 
 // ===== PARSE GCODE =====
-function parseGcode(gcodeFile) {
+function parseGcode(gcodeFile, infill = '25') {
   if (!fs.existsSync(gcodeFile)) throw new Error('ไม่พบไฟล์ gcode');
 
   const text = fs.readFileSync(gcodeFile, 'utf8');
@@ -206,11 +206,26 @@ function parseGcode(gcodeFile) {
 
   console.log('Parsed: weight=', weight, 'timeHrs=', timeHrs, 'timeStr=', timeStr);
 
-  // Correction factor จาก calibration กับ Bambu PLA Basic จริง
-  // Bambu Studio: 54.07g / PrusaSlicer: 36.65g = 1.476 ≈ 1.48
-  // เพราะ PrusaSlicer generate support น้อยกว่า Bambu Studio
-  const WEIGHT_CORRECTION = 1.48;
+  // Correction factor แปรตาม infill %
+  // calibrate กับ Bambu PLA Basic + Bambu Studio:
+  //   infill 15%: ประมาณ 1.45 (interpolated)
+  //   infill 25%: 54.07 / 36.65 = 1.476
+  //   infill 50%: ประมาณ 1.65 (interpolated)
+  //   infill 80%: 107.44 / 57.25 = 1.877
+  // interpolate เป็น linear ระหว่างจุดที่วัดได้
+  const infillNum = parseInt(infill) || 25;
+  let WEIGHT_CORRECTION;
+  if (infillNum <= 15)       WEIGHT_CORRECTION = 1.45;
+  else if (infillNum <= 25)  WEIGHT_CORRECTION = 1.45 + (infillNum - 15) / 10 * (1.476 - 1.45);
+  else if (infillNum <= 50)  WEIGHT_CORRECTION = 1.476 + (infillNum - 25) / 25 * (1.65 - 1.476);
+  else                       WEIGHT_CORRECTION = 1.65 + (infillNum - 50) / 30 * (1.877 - 1.65);
   if (weight) weight = weight * WEIGHT_CORRECTION;
+
+  // เวลาก็ต้อง correct เพราะ Bambu P1P เร็วกว่า PrusaSlicer default
+  // infill 25%: เวลาตรงแล้ว (ไม่ correct)
+  // infill 80%: Bambu 14h53m / เว็บ 10h39m = 1.40
+  const TIME_CORRECTION = infillNum <= 25 ? 1.0 : 1.0 + (infillNum - 25) / 55 * 0.40;
+  if (timeHrs) timeHrs = timeHrs * TIME_CORRECTION;
 
   if (!weight && !timeHrs) throw new Error('ไม่สามารถ parse ข้อมูลจาก gcode ได้');
   if (!weight) weight = 0;
