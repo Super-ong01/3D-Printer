@@ -206,6 +206,12 @@ function parseGcode(gcodeFile) {
 
   console.log('Parsed: weight=', weight, 'timeHrs=', timeHrs, 'timeStr=', timeStr);
 
+  // Correction factor จาก calibration กับ Bambu PLA Basic จริง
+  // Bambu Studio: 54.07g / PrusaSlicer: 36.65g = 1.476 ≈ 1.48
+  // เพราะ PrusaSlicer generate support น้อยกว่า Bambu Studio
+  const WEIGHT_CORRECTION = 1.48;
+  if (weight) weight = weight * WEIGHT_CORRECTION;
+
   if (!weight && !timeHrs) throw new Error('ไม่สามารถ parse ข้อมูลจาก gcode ได้');
   if (!weight) weight = 0;
   if (!timeHrs) timeHrs = 0;
