@@ -1,0 +1,13 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "sh -c 'xvfb-run --auto-servernum --server-args=\"-screen 0 1024x768x24\" node server.js'"
+healthcheckPath = "/health"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[[services]]
+name = "print3dhub-slicer"

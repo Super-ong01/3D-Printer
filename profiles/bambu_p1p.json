@@ -1,0 +1,20 @@
+{
+  "printer_technology": "FFF",
+  "bed_shape": "0x0,245x0,245x245,0x245",
+  "bed_custom_texture": "",
+  "bed_custom_model": "",
+  "max_print_height": "245",
+  "printer_model": "Bambu Lab P1P",
+  "printer_variant": "0.4",
+  "nozzle_diameter": "0.4",
+  "filament_diameter": "1.75",
+  "max_layer_height": "0.35",
+  "min_layer_height": "0.05",
+  "print_host": "",
+  "printhost_apikey": "",
+  "printhost_cafile": "",
+  "printer_notes": "Bambu Lab P1P 0.4mm",
+  "default_print_profile": "0.20mm Standard @BBL P1P",
+  "default_filament_profile": "Bambu PLA Basic @BBL P1P",
+  "inherits": ""
+}
