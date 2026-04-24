@@ -17,9 +17,17 @@ app.use(cors({
 app.use(express.json());
 
 // ===== MULTER — รับไฟล์ upload =====
+const storage = multer.diskStorage({
+  destination: os.tmpdir(),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `upload-${Date.now()}${ext}`); // เก็บ extension ไว้
+  }
+});
+
 const upload = multer({
-  dest: os.tmpdir(),
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (['.stl', '.step', '.3mf'].includes(ext)) cb(null, true);
@@ -75,7 +83,7 @@ app.post('/slice', upload.single('file'), async (req, res) => {
     scale_z  = '1',
   } = req.body;
 
-  const inputFile  = req.file.path;
+  const inputFile  = req.file.path; // มี extension แล้วเพราะใช้ diskStorage
   const outputDir  = fs.mkdtempSync(path.join(os.tmpdir(), 'slice-'));
   const gcodeFile  = path.join(outputDir, 'output.gcode');
 
