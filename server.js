@@ -16,12 +16,36 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// ===== SLICE QUEUE =====
+// slice ทีละ 1 งานเพื่อป้องกัน RAM เกิน (PrusaSlicer ใช้ ~500MB/process)
+let sliceRunning = false;
+const sliceQueue = [];
+
+function processQueue() {
+  if (sliceRunning || sliceQueue.length === 0) return;
+  sliceRunning = true;
+  const { task, resolve, reject } = sliceQueue.shift();
+  console.log(`Queue: running task (${sliceQueue.length} remaining)`);
+  task().then(resolve).catch(reject).finally(() => {
+    sliceRunning = false;
+    processQueue(); // รัน task ถัดไป
+  });
+}
+
+function enqueueSlice(task) {
+  return new Promise((resolve, reject) => {
+    sliceQueue.push({ task, resolve, reject });
+    console.log(`Queue: added task (queue size: ${sliceQueue.length})`);
+    processQueue();
+  });
+}
+
 // ===== MULTER — รับไฟล์ upload =====
 const storage = multer.diskStorage({
   destination: os.tmpdir(),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `upload-${Date.now()}${ext}`); // เก็บ extension ไว้
+    cb(null, `upload-${Date.now()}${ext}`);
   }
 });
 
@@ -58,34 +82,41 @@ const LAYER_PROFILES = {
 
 // ===== HEALTH CHECK =====
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', version: '1.0.0' });
+  res.json({ status: 'ok', version: '1.0.0', queue: sliceQueue.length, busy: sliceRunning });
+});
+
+// ===== QUEUE STATUS =====
+app.get('/queue', (req, res) => {
+  res.json({ queue: sliceQueue.length, busy: sliceRunning });
 });
 
 // ===== SLICE ENDPOINT =====
-// POST /slice
-// Body: multipart/form-data
-//   file: STL/STEP/3MF file
-//   material: PLA | PETG | ASA | TPU | Standard | H-Clear | ABS-Like | Tough
-//   layer: 0.08 | 0.16 | 0.24
-//   infill: 15 | 25 | 50 | 80
-//   scale_x: float (default 1.0)
-//   scale_y: float (default 1.0)
-//   scale_z: float (default 1.0)
 app.post('/slice', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'ไม่พบไฟล์' });
 
-  const {
-    material = 'PLA',
-    layer    = '0.16',
-    infill   = '25',
-    scale_x  = '1',
-    scale_y  = '1',
-    scale_z  = '1',
-  } = req.body;
+  // ถ้า queue เต็มเกิน 5 งาน ปฏิเสธทันที
+  if (sliceQueue.length >= 5) {
+    try { fs.unlinkSync(req.file.path); } catch {}
+    return res.status(503).json({ error: 'Server ยุ่งมาก กรุณาลองใหม่ใน 2-3 นาที' });
+  }
 
-  const inputFile  = req.file.path; // มี extension แล้วเพราะใช้ diskStorage
-  const outputDir  = fs.mkdtempSync(path.join(os.tmpdir(), 'slice-'));
-  const gcodeFile  = path.join(outputDir, 'output.gcode');
+  const { material='PLA', layer='0.16', infill='25', scale_x='1', scale_y='1', scale_z='1' } = req.body;
+  const inputFile = req.file.path;
+
+  try {
+    const result = await enqueueSlice(() => runSlice(inputFile, { material, layer, infill, scale_x, scale_y, scale_z }));
+    res.json(result);
+  } catch (err) {
+    console.error('Slice error:', err.message);
+    res.status(500).json({ error: err.message });
+  } finally {
+    try { fs.unlinkSync(inputFile); } catch {}
+  }
+});
+
+async function runSlice(inputFile, { material, layer, infill, scale_x, scale_y, scale_z }) {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slice-'));
+  const gcodeFile = path.join(outputDir, 'output.gcode');
 
   try {
     // ===== BUILD PRUSASLICER COMMAND =====
@@ -117,24 +148,19 @@ app.post('/slice', upload.single('file'), async (req, res) => {
 
     // ===== PARSE GCODE RESULT =====
     const result = parseGcode(gcodeFile, infill);
-    res.json({
+    return {
       success: true,
       weight_g: result.weight,
       print_time_hrs: result.timeHrs,
       print_time_str: result.timeStr,
       filament_m: result.filamentM,
       layer_count: result.layers,
-    });
+    };
 
-  } catch (err) {
-    console.error('Slice error:', err.message);
-    res.status(500).json({ error: err.message });
   } finally {
-    // cleanup
-    try { fs.unlinkSync(inputFile); } catch {}
     try { fs.rmSync(outputDir, { recursive: true }); } catch {}
   }
-});
+}
 
 // ===== PARSE GCODE =====
 function parseGcode(gcodeFile, infill = '25') {
