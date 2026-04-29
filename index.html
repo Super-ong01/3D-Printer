@@ -480,7 +480,7 @@ body.in-app{overflow:hidden}
 .mp-qty-btn{width:20px;height:20px;border-radius:5px;background:var(--bg-hover);border:1px solid var(--border);color:var(--text);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0}
 .mp-qty-btn:hover{border-color:var(--orange);color:var(--orange)}
 .mp-qty-num{font-size:11px;font-weight:600;color:var(--text);min-width:14px;text-align:center}
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 </style>
 </head>
 <body>
@@ -1113,15 +1113,29 @@ async function fetchUserData(){
 function startGoogleLogin(){
   if(!window.google?.accounts?.id){
     document.getElementById('auth-error').style.display='block';
-    document.getElementById('auth-error').textContent='⚠ Google ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่';
+    document.getElementById('auth-error').textContent='⚠ Google ยังโหลดไม่เสร็จ กรุณารีเฟรชหน้าแล้วลองใหม่';
     return;
   }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: '46408304526-91okji37nbvj2cvo4ftsuln7mlnu2pu5.apps.googleusercontent.com',
+    scope: 'email profile openid',
+    callback: () => {},
+  });
   google.accounts.id.initialize({
-    client_id:'46408304526-91okji37nbvj2cvo4ftsuln7mlnu2pu5.apps.googleusercontent.com',
+    client_id: '46408304526-91okji37nbvj2cvo4ftsuln7mlnu2pu5.apps.googleusercontent.com',
     callback: handleGoogleLogin,
     ux_mode: 'popup',
+    cancel_on_tap_outside: false,
   });
-  google.accounts.id.prompt();
+  google.accounts.id.prompt((notification) => {
+    if(notification.isNotDisplayed() || notification.isSkippedMoment()){
+      // Fallback: render button และ click
+      const d = document.createElement('div');
+      d.style.display='none'; document.body.appendChild(d);
+      google.accounts.id.renderButton(d, {theme:'outline', size:'large'});
+      setTimeout(()=>{ d.querySelector('div[role=button]')?.click(); }, 300);
+    }
+  });
 }
 
 async function handleGoogleLogin(response){
@@ -2108,6 +2122,7 @@ if(mpAdd){
 </script>
 </body>
 </html>
+
 <!-- <!DOCTYPE html>
 <html lang="th">
 <head>
