@@ -1917,7 +1917,11 @@ window.addEventListener('load',()=>{
   document.getElementById('tech-sla').classList.toggle('disabled',!adminSettings.slaEnabled);
 
   document.getElementById('hero-start-btn').addEventListener('click',()=>{
-    gotoLogin();
+    if(currentUser){
+      showPage('pg-app');showApp('print',null);showSidebarBottom();
+    } else {
+      gotoLogin();
+    }
   });
 
   // restore session ถ้ามี token เก่า
