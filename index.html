@@ -1281,11 +1281,26 @@ function showPage(id){
   const nav=document.querySelector('.nav');
   if(nav) nav.style.display = id==='pg-app' ? 'none' : '';
   document.body.classList.toggle('in-app', id==='pg-app');
-  // ซ่อน/แสดง sidebar-bottom ตาม page
   const sbb=document.getElementById('sidebar-bottom-el');
   if(sbb) sbb.style.display = id==='pg-app' ? 'block' : 'none';
   if(id==='pg-app') requestAnimationFrame(resizeV);
+  // push history เพื่อให้ปุ่ม back ทำงาน
+  if(history.state?.page !== id){
+    history.pushState({page:id}, '', window.location.pathname);
+  }
 }
+
+// ปุ่ม back ของ browser
+window.addEventListener('popstate',(e)=>{
+  const page=e.state?.page||'pg-landing';
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.getElementById(page)?.classList.add('on');
+  const nav=document.querySelector('.nav');
+  if(nav) nav.style.display=page==='pg-app'?'none':'';
+  document.body.classList.toggle('in-app',page==='pg-app');
+  const sbb=document.getElementById('sidebar-bottom-el');
+  if(sbb) sbb.style.display=page==='pg-app'?'block':'none';
+});
 function showApp(section,el){
   showPage('pg-app');
   document.querySelectorAll('.app-section').forEach(s=>s.style.display='none');
