@@ -579,8 +579,8 @@ body.in-app{overflow:hidden}
         data-auto_prompt="false">
       </div>
 
-      <div id="auth-loading" style="display:none;margin-top:16px;color:var(--muted);font-size:13px">
-        <div class="spinner" style="width:18px;height:18px;margin:0 auto 8px"></div>
+      <div id="auth-loading" style="display:none;margin-top:16px;color:var(--muted);font-size:13px;text-align:center">
+        <div class="spinner" style="width:18px;height:18px;margin:0 auto 8px;border-top-color:var(--orange)"></div>
         กำลังเข้าสู่ระบบ...
       </div>
       <div id="auth-error" style="display:none;margin-top:12px;color:var(--red);font-size:13px"></div>
@@ -1171,7 +1171,13 @@ async function handleGoogleLogin(response){
   }
 }
 
-function gotoLogin(){ showPage('pg-login'); }
+function gotoLogin(){
+  // reset สถานะหน้า login ทุกครั้ง
+  document.getElementById('auth-loading').style.display='none';
+  document.getElementById('auth-error').style.display='none';
+  document.getElementById('auth-error').textContent='';
+  showPage('pg-login');
+}
 
 function logout(){
   currentUser = null; authToken = null;
