@@ -1292,7 +1292,9 @@ function showPage(id){
 
 // ปุ่ม back ของ browser
 window.addEventListener('popstate',(e)=>{
-  const page=e.state?.page||'pg-landing';
+  let page=e.state?.page||'pg-landing';
+  // ถ้า login แล้วและ back ไปหน้า login → ไปหน้า landing แทน
+  if(currentUser && (page==='pg-login')) page='pg-landing';
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.getElementById(page)?.classList.add('on');
   const nav=document.querySelector('.nav');
