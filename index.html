@@ -1086,8 +1086,7 @@ function initAuth(){
       if(payload.exp * 1000 > Date.now()){
         currentUser = { id:payload.id, name:payload.name, email:payload.email, role:payload.role, picture:payload.picture };
         setupUserNav();
-        showPage('pg-app'); showApp('print',null); showSidebarBottom();
-        // sync ข้อมูลจาก server
+        // ไม่ redirect อัตโนมัติ — ให้ user กดปุ่มเองจากหน้า landing
         fetchUserData();
         return;
       }
