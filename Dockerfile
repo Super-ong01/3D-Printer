@@ -31,7 +31,7 @@ WORKDIR /app
 
 # Copy Node.js app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --only=production
 
 COPY server.js ./
 COPY profiles/ ./profiles/
