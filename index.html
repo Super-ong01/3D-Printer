@@ -1161,6 +1161,7 @@ async function handleGoogleLogin(response){
     currentUser = data.user;
     localStorage.setItem('p3d_token', authToken);
     addresses = [];
+    document.getElementById('auth-loading').style.display='none';
     setupUserNav();
     showPage('pg-app'); showApp('print',null); showSidebarBottom();
     fetchUserData();
@@ -1182,11 +1183,15 @@ function gotoLogin(){
 function logout(){
   currentUser = null; authToken = null;
   localStorage.removeItem('p3d_token');
-  // Google sign out
   if(window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
   document.getElementById('user-menu').classList.remove('on');
   document.getElementById('nav-r').style.display='flex';
   document.getElementById('nav-user').style.display='none';
+  // reset หน้า login ให้สะอาด
+  const ld=document.getElementById('auth-loading');
+  const er=document.getElementById('auth-error');
+  if(ld) ld.style.display='none';
+  if(er){ er.style.display='none'; er.textContent=''; }
   showPage('pg-landing');
 }
 
