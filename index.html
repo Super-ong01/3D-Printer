@@ -1294,7 +1294,7 @@ function showPage(id){
 window.addEventListener('popstate',(e)=>{
   let page=e.state?.page||'pg-landing';
   // ถ้า login แล้วและ back ไปหน้า login → ไปหน้า landing แทน
-  if(currentUser && (page==='pg-login')) page='pg-landing';
+  if(currentUser && page==='pg-login') page='pg-landing';
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.getElementById(page)?.classList.add('on');
   const nav=document.querySelector('.nav');
@@ -1302,6 +1302,13 @@ window.addEventListener('popstate',(e)=>{
   document.body.classList.toggle('in-app',page==='pg-app');
   const sbb=document.getElementById('sidebar-bottom-el');
   if(sbb) sbb.style.display=page==='pg-app'?'block':'none';
+  // reset login page state ทุกครั้งที่แสดงหน้า login
+  if(page==='pg-login'){
+    const ld=document.getElementById('auth-loading');
+    const er=document.getElementById('auth-error');
+    if(ld) ld.style.display='none';
+    if(er){ er.style.display='none'; er.textContent=''; }
+  }
 });
 function showApp(section,el){
   showPage('pg-app');
