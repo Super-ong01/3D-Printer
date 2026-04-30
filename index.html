@@ -332,6 +332,7 @@ body.in-app{overflow:hidden}
 /* ===== HISTORY PAGES ===== */
 .hist-page{padding:2rem;max-width:1100px;margin:0 auto;overflow-y:auto;height:calc(100vh - var(--topbar))}
 .hist-page h2{font-size:22px;font-weight:700;margin-bottom:1.5rem}
+#app-orders, #app-quotes{flex:1;overflow-y:auto;min-width:0}
 .hist-filter{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem}
 .hf-tab{padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;background:none;font-family:var(--font);color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
 .hf-tab.on{color:var(--orange);border-bottom-color:var(--orange)}
@@ -866,16 +867,6 @@ body.in-app{overflow:hidden}
 
   <!-- ORDERS -->
   <div id="app-orders" class="app-section" style="display:none">
-  <div class="app-body">
-    <div class="sidebar">
-      <div class="sidebar-logo">Print<span>3D</span>Hub</div>
-      <div class="sidebar-nav">
-        <div class="snav-item" onclick="showApp('print',null)"><span class="snav-icon">🖨</span>Print</div>
-        <div class="snav-item on"><span class="snav-icon">📦</span>Order History</div>
-        <div class="snav-item" onclick="showApp('quotes',null)"><span class="snav-icon">📋</span>Quotations</div>
-      </div>
-    </div>
-    <div style="flex:1;overflow-y:auto">
     <div class="hist-page">
       <h2>ประวัติคำสั่งซื้อ</h2>
       <div class="hist-filter">
@@ -896,28 +887,14 @@ body.in-app{overflow:hidden}
         </div>
       </div>
     </div>
-    </div>
-  </div>
   </div>
 
   <!-- QUOTES -->
   <div id="app-quotes" class="app-section" style="display:none">
-  <div class="app-body">
-    <div class="sidebar">
-      <div class="sidebar-logo">Print<span>3D</span>Hub</div>
-      <div class="sidebar-nav">
-        <div class="snav-item" onclick="showApp('print',null)"><span class="snav-icon">🖨</span>Print</div>
-        <div class="snav-item" onclick="showApp('orders',null)"><span class="snav-icon">📦</span>Order History</div>
-        <div class="snav-item on"><span class="snav-icon">📋</span>Quotations</div>
-      </div>
-    </div>
-    <div style="flex:1;overflow-y:auto">
     <div class="hist-page">
       <h2>ใบเสนอราคา</h2>
       <div id="quotes-table"></div>
     </div>
-    </div>
-  </div>
   </div>
 </div>
 
