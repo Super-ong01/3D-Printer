@@ -1596,8 +1596,9 @@ async function submitOrder(){
   const grand=getTotalPrice();
   const note=document.getElementById('tech-note')?.value||'';
   const fileList=models.length>1?models.map(m=>m.name).join(', '):(currentFile?.name||'(ไม่มีไฟล์)');
+  const fileUrls=models.map(m=>({name:m.name,url:m.fileUrl||null}));
   const totalQty=models.reduce((s,m)=>s+m.qty,0)||S.qty;
-  const orderData={orderId:'ORD-'+Date.now(),files:fileList,tech:S.tech==='fdm'?'FDM':'SLA',material:S.matName,color:S.color,size:S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0),qty:totalQty,price:grand,infill:S.infill,layer:S.layerVal+'mm',note,coupon:activeCoupon?.code||null,status:'pending',name:n,phone:p,addr};
+  const orderData={orderId:'ORD-'+Date.now(),files:fileList,fileUrls,tech:S.tech==='fdm'?'FDM':'SLA',material:S.matName,color:S.color,size:S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0),qty:totalQty,price:grand,infill:S.infill,layer:S.layerVal+'mm',note,coupon:activeCoupon?.code||null,status:'pending',name:n,phone:p,addr};
   try{ await apiCall('POST','/orders',orderData); }catch(e){ console.warn('save order:',e.message); }
   orders.unshift({id:orderData.orderId,date:new Date().toLocaleDateString('th-TH'),...orderData,statusIdx:0});
   localStorage.setItem('p3d_orders',JSON.stringify(orders));
@@ -1653,6 +1654,14 @@ function renderAdminOrders(){
             <div style="font-weight:700;margin-bottom:8px;color:var(--orange)">📦 รายละเอียดงาน</div>
             <div style="display:flex;flex-direction:column;gap:4px;color:var(--muted)">
               <div>ไฟล์: <span style="color:var(--text)">${o.files||o.file||'—'}</span></div>
+              ${(o.fileUrls||[]).filter(f=>f.url).map(f=>`
+                <div style="margin-top:4px">
+                  <a href="${f.url}" target="_blank" download="${f.name}"
+                    style="display:inline-flex;align-items:center;gap:6px;background:var(--orange);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">
+                    ⬇ ${f.name}
+                  </a>
+                </div>
+              `).join('')}
               <div>เทคโนโลยี: <span style="color:var(--text)">${o.tech||'—'}</span></div>
               <div>วัสดุ/สี: <span style="color:var(--text)">${o.material||o.mat||'—'} / ${o.color||'—'}</span></div>
               <div>ขนาด: <span style="color:var(--text)">${o.size||'—'} mm</span></div>
@@ -2038,25 +2047,58 @@ window._allSTLBuffers={};
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 
 function addModels(files){
-  const stlFiles=[...files].filter(f=>f.name.toLowerCase().endsWith('.stl'));
-  if(!stlFiles.length) return;
-  stlFiles.forEach(f=>{
+  const allowed=['.stl','.step','.3mf','.obj'];
+  const validFiles=[...files].filter(f=>allowed.some(ext=>f.name.toLowerCase().endsWith(ext)));
+  if(!validFiles.length) return;
+  validFiles.forEach(f=>{
     const id=genId();
-    const m={id,file:f,name:f.name,size:'—',qty:1,active:false,nonManifold:false,sliceResult:null};
+    const m={id,file:f,name:f.name,size:'—',qty:1,active:false,nonManifold:false,sliceResult:null,fileUrl:null,uploading:true};
     models.push(m);
     const r=new FileReader();
     r.onload=ev=>{
-      window._allSTLBuffers[id]=ev.target.result;
-      const dv=new DataView(ev.target.result);
-      m.nonManifold=dv.getUint32(80,true)<4;
-      document.getElementById('upload-area').style.display='none';
-      if(!activeModelId) setActiveModel(id);
-      else renderModelsList();
+      // STL only สำหรับ viewer และ slicer
+      if(f.name.toLowerCase().endsWith('.stl')){
+        window._allSTLBuffers[id]=ev.target.result;
+        const dv=new DataView(ev.target.result);
+        m.nonManifold=dv.getUint32(80,true)<4;
+        document.getElementById('upload-area').style.display='none';
+        if(!activeModelId) setActiveModel(id);
+        else renderModelsList();
+      } else {
+        // STEP/3MF — ไม่มี viewer แต่เก็บไว้ในระบบ
+        document.getElementById('upload-area').style.display='none';
+        if(!activeModelId){ activeModelId=id; m.active=true; }
+        renderModelsList();
+      }
+      // upload ไป Cloudinary ใน background
+      uploadFileToCloud(m);
     };
     r.readAsArrayBuffer(f);
   });
   showSliceStatus('อัปโหลดสำเร็จ — กดปุ่ม Estimated เพื่อคำนวณราคา','info');
   unlockEstimateBtn();
+}
+
+async function uploadFileToCloud(m){
+  try{
+    const formData=new FormData();
+    formData.append('file', m.file);
+    const r=await fetch(`${API}/upload-file`,{
+      method:'POST',
+      headers: authToken?{Authorization:`Bearer ${authToken}`}:{},
+      body:formData,
+    });
+    const data=await r.json();
+    if(data.url){
+      m.fileUrl=data.url;
+      m.uploading=false;
+      renderModelsList();
+      console.log('[Upload] File saved:', data.url);
+    }
+  }catch(e){
+    m.uploading=false;
+    console.warn('[Upload] Failed:', e.message);
+  }
 }
 
 function setActiveModel(id){
@@ -2201,6 +2243,8 @@ function renderModelsList(){
       <div class="mp-tags">
         <span class="mp-tag mp-tag-${S.tech==='fdm'?'fdm':'sla'}">${S.tech.toUpperCase()}</span>
         ${m.nonManifold?'<span class="mp-tag mp-tag-warn">⚠ Non-Manifold</span>':''}
+        ${m.uploading?'<span class="mp-tag" style="background:rgba(96,165,250,.15);color:#60a5fa">⬆ uploading</span>':''}
+        ${m.fileUrl&&!m.uploading?'<span class="mp-tag" style="background:rgba(52,211,153,.15);color:#34d399">☁ saved</span>':''}
         ${badge}
         <div class="mp-qty" onclick="event.stopPropagation()">
           <button class="mp-qty-btn" onclick="changeQty('${m.id}',-1)">−</button>
