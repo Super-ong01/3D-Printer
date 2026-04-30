@@ -31,8 +31,8 @@ body.in-app{overflow:hidden}
 /* ===== TOP NAV ===== */
 .nav{background:var(--surface);border-bottom:1px solid var(--border);height:var(--topbar);display:flex;align-items:center;justify-content:space-between;padding:0 1rem;position:fixed;top:0;left:0;right:0;z-index:200}
 .nav-left{display:flex;align-items:center;gap:12px}
-.nav-logo{font-size:18px;font-weight:800;color:var(--orange);cursor:pointer;letter-spacing:-.5px}
-.nav-logo span{color:var(--text)}
+.nav-logo{font-size:18px;font-weight:800;color:var(--text);cursor:pointer;letter-spacing:-.5px}
+.nav-logo span{color:var(--orange)}
 .nav-r{display:flex;align-items:center;gap:8px}
 .btn{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:var(--font)}
 .btn-primary{background:var(--orange);color:#fff}
@@ -1320,6 +1320,12 @@ function showApp(section,el){
   document.querySelectorAll('.app-section').forEach(s=>s.style.display='none');
   document.getElementById('app-'+section).style.display='block';
   document.getElementById('save-quote-btn').style.display=section==='print'?'block':'none';
+  // sidebar bottom ต้องแสดงเสมอเมื่ออยู่ใน app
+  showSidebarBottom();
+  // update active nav item
+  document.querySelectorAll('.snav-item').forEach(s=>s.classList.remove('on'));
+  const activeNav=document.getElementById('snav-'+section);
+  if(activeNav) activeNav.classList.add('on');
   if(section==='orders'){renderOrders();requestAnimationFrame(resizeV);}
   if(section==='quotes'){renderQuotes();requestAnimationFrame(resizeV);}
   if(section==='print')requestAnimationFrame(resizeV);
