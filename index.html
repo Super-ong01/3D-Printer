@@ -867,6 +867,27 @@ body.in-app{overflow:hidden}
 
   <!-- ORDERS -->
   <div id="app-orders" class="app-section" style="display:none">
+  <div class="app-body">
+    <div class="sidebar"><div class="sidebar-inner">
+      <div class="sidebar-logo" onclick="gotoLanding()" style="cursor:pointer">
+        <div class="sidebar-logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+        <span style="color:var(--text);font-weight:800;letter-spacing:-.3px">Print<span style="color:var(--orange)">3D</span>Hub</span>
+      </div>
+      <div class="sidebar-nav">
+        <div class="snav-item" onclick="showApp('print',null)"><svg class="snav-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print</div>
+        <div class="snav-item on"><svg class="snav-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Order History</div>
+        <div class="snav-item" onclick="showApp('quotes',null)"><svg class="snav-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Quotations</div>
+        <div class="snav-item" id="admin-sidebar-item2" onclick="showAdmin()" style="display:none"><svg class="snav-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Admin Panel</div>
+      </div>
+      <div class="sidebar-bottom" id="sidebar-bottom-orders" style="display:none">
+        <div class="sidebar-user-block">
+          <div class="sidebar-avatar" id="sidebar-avatar-orders">G</div>
+          <div class="sidebar-user-info"><div class="sidebar-user-name" id="sidebar-name-orders">Guest</div><div class="sidebar-user-role">ผู้ใช้งาน</div></div>
+        </div>
+        <button onclick="logout()" class="sidebar-logout-btn">ออกจากระบบ</button>
+      </div>
+    </div></div>
+    <div style="flex:1;overflow-y:auto">
     <div class="hist-page">
       <h2>ประวัติคำสั่งซื้อ</h2>
       <div class="hist-filter">
@@ -877,24 +898,40 @@ body.in-app{overflow:hidden}
         <button class="hf-tab" onclick="filterOrders('done',this)">เสร็จแล้ว</button>
       </div>
       <div id="orders-table"></div>
-      <div id="order-detail" style="display:none;margin-top:1.5rem">
-        <div class="card">
-          <div class="card-header"><span id="detail-id">รายละเอียดออเดอร์</span><button onclick="document.getElementById('order-detail').style.display='none'" class="btn btn-outline btn-sm">ปิด</button></div>
-          <div style="padding:1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
-            <div><div style="font-size:14px;font-weight:600;margin-bottom:12px">ข้อมูลการพิมพ์</div><div id="detail-info" style="font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px"></div></div>
-            <div><div style="font-size:14px;font-weight:600;margin-bottom:12px">ติดตามสถานะ</div><div class="timeline-wrap" id="detail-timeline"></div></div>
-          </div>
-        </div>
-      </div>
     </div>
+    </div>
+  </div>
   </div>
 
   <!-- QUOTES -->
   <div id="app-quotes" class="app-section" style="display:none">
+  <div class="app-body">
+    <div class="sidebar"><div class="sidebar-inner">
+      <div class="sidebar-logo" onclick="gotoLanding()" style="cursor:pointer">
+        <div class="sidebar-logo-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+        <span style="color:var(--text);font-weight:800;letter-spacing:-.3px">Print<span style="color:var(--orange)">3D</span>Hub</span>
+      </div>
+      <div class="sidebar-nav">
+        <div class="snav-item" onclick="showApp('print',null)"><svg class="snav-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print</div>
+        <div class="snav-item" onclick="showApp('orders',null)"><svg class="snav-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Order History</div>
+        <div class="snav-item on"><svg class="snav-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Quotations</div>
+        <div class="snav-item" id="admin-sidebar-item3" onclick="showAdmin()" style="display:none"><svg class="snav-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Admin Panel</div>
+      </div>
+      <div class="sidebar-bottom" id="sidebar-bottom-quotes" style="display:none">
+        <div class="sidebar-user-block">
+          <div class="sidebar-avatar" id="sidebar-avatar-quotes">G</div>
+          <div class="sidebar-user-info"><div class="sidebar-user-name" id="sidebar-name-quotes">Guest</div><div class="sidebar-user-role">ผู้ใช้งาน</div></div>
+        </div>
+        <button onclick="logout()" class="sidebar-logout-btn">ออกจากระบบ</button>
+      </div>
+    </div></div>
+    <div style="flex:1;overflow-y:auto">
     <div class="hist-page">
       <h2>ใบเสนอราคา</h2>
       <div id="quotes-table"></div>
     </div>
+    </div>
+  </div>
   </div>
 </div>
 
@@ -1239,7 +1276,22 @@ if(!adminSettings.colorMatrix){
 /* ============ AUTH ============ */
 function gotoLogin(){showPage('pg-login');}
 function gotoLanding(){showPage('pg-landing');}
-function showSidebarBottom(){const el=document.getElementById('sidebar-bottom-el');if(el)el.style.display='block';}
+function showSidebarBottom(){
+  ['sidebar-bottom-el','sidebar-bottom-orders','sidebar-bottom-quotes'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.style.display='block';
+  });
+  // sync avatar/name to all sidebars
+  if(currentUser){
+    ['orders','quotes'].forEach(s=>{
+      const av=document.getElementById('sidebar-avatar-'+s);
+      const nm=document.getElementById('sidebar-name-'+s);
+      const ai=document.getElementById('admin-sidebar-item'+(s==='orders'?'2':'3'));
+      if(av){if(currentUser.picture)av.innerHTML=`<img src="${currentUser.picture}" style="width:30px;height:30px;border-radius:50%;object-fit:cover">`;else av.textContent=(currentUser.name||'U')[0];}
+      if(nm)nm.textContent=currentUser.name||'';
+      if(ai)ai.style.display=currentUser.role==='admin'?'flex':'none';
+    });
+  }
+}
 function logout(){currentUser=null;document.getElementById('user-menu').classList.remove('on');document.getElementById('nav-r').style.display='flex';document.getElementById('nav-user').style.display='none';showPage('pg-landing');}
 function setupUserNav(){
   document.getElementById('nav-r').style.display='none';
