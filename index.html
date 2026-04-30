@@ -1621,9 +1621,45 @@ const STATUS_LABEL={pending:'รอยืนยัน',printing:'กำลัง
 const STATUS_STEPS=['pending','printing','qc','shipped','done'];
 const STATUS_ICONS={pending:'📋',printing:'🖨️',qc:'🔍',shipped:'🚚',done:'✅'};
 function filterOrders(f,el){orderFilter=f;document.querySelectorAll('.hf-tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');renderOrders();}
-function renderOrders(){const el=document.getElementById('orders-table');const filtered=orderFilter==='all'?orders:orders.filter(o=>STATUS_STEPS[o.statusIdx]===orderFilter);if(!filtered.length){el.innerHTML='<div class="empty-state"><div style="font-size:40px;opacity:.3">📦</div><div>ยังไม่มีคำสั่งซื้อ</div></div>';return;}el.innerHTML=`<table class="hist-table"><thead><tr><th>เลขที่</th><th>วันที่</th><th>ไฟล์</th><th>วัสดุ</th><th>ขนาด</th><th>ราคา</th><th>สถานะ</th><th></th></tr></thead><tbody>${filtered.map(o=>`<tr><td style="font-family:var(--mono);font-size:11px">${o.id}</td><td>${o.date}</td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.file}</td><td>${o.tech}/${o.mat}</td><td style="font-family:var(--mono);font-size:11px">${o.size}</td><td style="color:var(--orange);font-weight:600">฿${o.price}</td><td><span class="badge ${STATUS_STEPS[o.statusIdx]}">${STATUS_LABEL[STATUS_STEPS[o.statusIdx]]}</span></td><td><button onclick="showOrderDetail('${o.id}')" class="btn btn-outline btn-sm">ดู</button></td></tr>`).join('')}</tbody></table>`;}
+async function renderOrders(){
+  const el=document.getElementById('orders-table');
+  el.innerHTML='<div class="empty-state">กำลังโหลด...</div>';
+  try{
+    const data=await apiCall('GET','/orders');
+    orders=data.map(o=>({...o,id:o.orderId||o._id,file:o.files||o.file,mat:o.material||o.mat,date:o.date||new Date(o.createdAt).toLocaleDateString('th-TH'),statusIdx:Math.max(0,STATUS_STEPS.indexOf(o.status))}));
+  }catch(e){ orders=[]; }
+  const filtered=orderFilter==='all'?orders:orders.filter(o=>STATUS_STEPS[o.statusIdx]===orderFilter);
+  if(!filtered.length){el.innerHTML='<div class="empty-state"><div style="font-size:40px;opacity:.3">📦</div><div>ยังไม่มีคำสั่งซื้อ</div></div>';return;}
+  el.innerHTML=`<table class="hist-table"><thead><tr><th>เลขที่</th><th>วันที่</th><th>ไฟล์</th><th>วัสดุ</th><th>ขนาด</th><th>ราคา</th><th>สถานะ</th></tr></thead><tbody>${filtered.map(o=>`<tr>
+    <td style="font-family:var(--mono);font-size:11px">${o.id}</td>
+    <td>${o.date}</td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.file||'—'}</td>
+    <td>${o.tech||'—'}/${o.mat||'—'}</td>
+    <td style="font-family:var(--mono);font-size:11px">${o.size||'—'}</td>
+    <td style="color:var(--orange);font-weight:600">฿${o.price}</td>
+    <td><span class="badge ${STATUS_STEPS[o.statusIdx]||'pending'}">${STATUS_LABEL[STATUS_STEPS[o.statusIdx]]||'รอดำเนินการ'}</span></td>
+  </tr>`).join('')}</tbody></table>`;
+}
+async function renderQuotes(){
+  const el=document.getElementById('quotes-table');
+  el.innerHTML='<div class="empty-state">กำลังโหลด...</div>';
+  try{
+    const data=await apiCall('GET','/quotes');
+    quotes=data.map(q=>({...q,id:q.quoteId||q._id,file:q.files||q.file,mat:q.material||q.mat,date:q.date||new Date(q.createdAt).toLocaleDateString('th-TH')}));
+  }catch(e){ quotes=[]; }
+  if(!quotes.length){el.innerHTML='<div class="empty-state"><div style="font-size:40px;opacity:.3">📋</div><div>ยังไม่มีใบเสนอราคา</div></div>';return;}
+  el.innerHTML=`<table class="hist-table"><thead><tr><th>เลขที่</th><th>วันที่</th><th>ไฟล์</th><th>วัสดุ</th><th>ขนาด</th><th>จำนวน</th><th>ราคา</th><th>สถานะ</th></tr></thead><tbody>${quotes.map(q=>`<tr>
+    <td style="font-family:var(--mono);font-size:11px">${q.id}</td>
+    <td>${q.date}</td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${q.file||'—'}</td>
+    <td>${q.tech||'—'}/${q.mat||'—'}</td>
+    <td style="font-family:var(--mono);font-size:11px">${q.size||'—'}</td>
+    <td>${q.qty||1}</td>
+    <td style="color:var(--orange);font-weight:600">฿${q.price}</td>
+    <td><span class="badge ${q.status}">${q.status==='confirmed'?'ยืนยันแล้ว':'แบบร่าง'}</span></td>
+  </tr>`).join('')}</tbody></table>`;
+}
 function showOrderDetail(id){const o=orders.find(x=>x.id===id);if(!o)return;document.getElementById('detail-id').textContent=o.id;document.getElementById('detail-info').innerHTML=`<div><b>ไฟล์:</b> ${o.file}</div><div><b>Technology:</b> ${o.tech}/${o.mat}/${o.color}</div><div><b>ขนาด:</b> ${o.size} mm</div><div><b>Infill:</b> ${o.infill}%</div><div><b>Layer:</b> ${o.layer}</div><div><b>จำนวน:</b> ${o.qty} ชิ้น</div><div><b>ราคา:</b> ฿${o.price}</div><div><b>ชื่อ:</b> ${o.name}</div><div><b>โทร:</b> ${o.phone}</div><div><b>ที่อยู่:</b> ${o.addr}</div>${o.note?`<div><b>หมายเหตุ:</b> ${o.note}</div>`:''}`;const si=o.statusIdx||0;document.getElementById('detail-timeline').innerHTML=STATUS_STEPS.map((s,i)=>`<div class="tl-step"><div class="tl-dot ${i<si?'done':i===si?'current':''}">${STATUS_ICONS[s]}</div><div class="tl-content"><div class="tl-title">${STATUS_LABEL[s]}</div><div class="tl-date">${o.timestamps?.[s]||''}</div></div></div>`).join('');document.getElementById('order-detail').style.display='block';document.getElementById('order-detail').scrollIntoView({behavior:'smooth'});}
-function renderQuotes(){const el=document.getElementById('quotes-table');if(!quotes.length){el.innerHTML='<div class="empty-state"><div style="font-size:40px;opacity:.3">📋</div><div>ยังไม่มีใบเสนอราคา</div></div>';return;}el.innerHTML=`<table class="hist-table"><thead><tr><th>เลขที่</th><th>วันที่</th><th>ไฟล์</th><th>วัสดุ</th><th>ขนาด</th><th>จำนวน</th><th>ราคา</th><th>สถานะ</th></tr></thead><tbody>${quotes.map(q=>`<tr><td style="font-family:var(--mono);font-size:11px">${q.id}</td><td>${q.date}</td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${q.file}</td><td>${q.tech}/${q.mat}</td><td style="font-family:var(--mono);font-size:11px">${q.size}</td><td>${q.qty}</td><td style="color:var(--orange);font-weight:600">฿${q.price}</td><td><span class="badge ${q.status}">${q.status==='confirmed'?'ยืนยันแล้ว':'แบบร่าง'}</span></td></tr>`).join('')}</tbody></table>`;}
 
 /* ============ ADMIN ============ */
 function switchAdmin(sec,el){document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));document.getElementById('adm-'+sec).classList.add('on');document.querySelectorAll('.admin-nav-item').forEach(i=>i.classList.remove('on'));el.classList.add('on');}
