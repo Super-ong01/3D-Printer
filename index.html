@@ -2513,6 +2513,8 @@ function setActiveModel(id){
   models.forEach(m=>m.active=m.id===id);
   const m=models.find(m=>m.id===id);
   if(!m) return;
+  // restore sliceResult global ให้ตรงกับ model ที่เลือก
+  sliceResult=m.sliceResult||null;
   // restore settings ของ model ที่เลือก
   if(m.settings){
     S.tech=m.settings.tech; S.mat=m.settings.mat; S.matName=m.settings.matName;
@@ -2575,16 +2577,20 @@ function removeModel(id){
   if(activeModelId===id){
     if(models.length>0){
       setActiveModel(models[0].id);
+      recalc();
+      updateEstimateBtn();
     } else {
       activeModelId=null;currentFile=null;
       window._origSTLBuffer=null;sliceResult=null;
-      // clear mesh จาก 3D scene
       if(typeof meshObj!=='undefined'&&meshObj){scene.remove(meshObj);meshObj=null;}
       document.getElementById('upload-area').style.display='flex';
       document.getElementById('viewer-fname').style.display='none';
       document.getElementById('viewer-loading').style.display='none';
       recalc();updateEstimateBtn();
     }
+  } else {
+    // ลบ model ที่ไม่ได้ active อยู่ — แค่ recalc ราคารวมใหม่
+    recalc();
   }
   renderModelsList();
 }
