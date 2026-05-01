@@ -1364,7 +1364,12 @@ function showApp(section,el){
   if(section==='quotes'){renderQuotes();requestAnimationFrame(resizeV);}
   if(section==='print')requestAnimationFrame(resizeV);
 }
-function showAdmin(){showPage('pg-admin');renderAdminDashboard();renderAdminOrders();renderCouponList();renderMaterialToggles();renderPriceInputs();document.getElementById('user-menu').classList.remove('on');}
+function showAdmin(){
+  // reload orders/quotes จาก localStorage เสมอก่อน render
+  try{ orders=JSON.parse(localStorage.getItem('p3d_orders')||'[]'); }catch(_){}
+  try{ quotes=JSON.parse(localStorage.getItem('p3d_quotes')||'[]'); }catch(_){}
+  showPage('pg-admin');renderAdminDashboard();renderAdminOrders();renderCouponList();renderMaterialToggles();renderPriceInputs();document.getElementById('user-menu').classList.remove('on');
+}
 
 /* ============ COLOR PICKER ============ */
 function toggleColorPicker(){document.getElementById('color-picker-popup').classList.toggle('on');}
@@ -1667,7 +1672,11 @@ async function renderOrders(){
   try{
     const data=await apiCall('GET','/orders');
     orders=data.map(o=>({...o,id:o.orderId||o._id,file:o.files||o.file,mat:o.material||o.mat,date:o.date||new Date(o.createdAt).toLocaleDateString('th-TH'),statusIdx:Math.max(0,STATUS_STEPS.indexOf(o.status))}));
-  }catch(e){ orders=[]; }
+  }catch(e){
+    // API ไม่พร้อม — ใช้ข้อมูลจาก localStorage แทน ห้ามล้างทิ้ง
+    const saved=localStorage.getItem('p3d_orders');
+    if(saved) try{ orders=JSON.parse(saved); }catch(_){}
+  }
   const filtered=orderFilter==='all'?orders:orders.filter(o=>STATUS_STEPS[o.statusIdx]===orderFilter);
   if(!filtered.length){el.innerHTML='<div class="empty-state"><div style="font-size:40px;opacity:.3">📦</div><div>ยังไม่มีคำสั่งซื้อ</div></div>';return;}
   el.innerHTML=`<table class="hist-table"><thead><tr><th>เลขที่</th><th>วันที่</th><th>ไฟล์</th><th>วัสดุ</th><th>ขนาด</th><th>ราคา</th><th>สถานะ</th></tr></thead><tbody>${filtered.map(o=>`<tr>
@@ -1686,7 +1695,11 @@ async function renderQuotes(){
   try{
     const data=await apiCall('GET','/quotes');
     quotes=data.map(q=>({...q,id:q.quoteId||q._id,file:q.files||q.file,mat:q.material||q.mat,date:q.date||new Date(q.createdAt).toLocaleDateString('th-TH')}));
-  }catch(e){ quotes=[]; }
+  }catch(e){
+    // API ไม่พร้อม — ใช้ข้อมูลจาก localStorage แทน ห้ามล้างทิ้ง
+    const saved=localStorage.getItem('p3d_quotes');
+    if(saved) try{ quotes=JSON.parse(saved); }catch(_){}
+  }
   if(!quotes.length){el.innerHTML='<div class="empty-state"><div style="font-size:40px;opacity:.3">📋</div><div>ยังไม่มีใบเสนอราคา</div></div>';return;}
   el.innerHTML=`<table class="hist-table"><thead><tr><th>เลขที่</th><th>วันที่</th><th>ไฟล์</th><th>วัสดุ</th><th>ขนาด</th><th>จำนวน</th><th>ราคา</th><th>สถานะ</th></tr></thead><tbody>${quotes.map(q=>`<tr>
     <td style="font-family:var(--mono);font-size:11px">${q.id}</td>
