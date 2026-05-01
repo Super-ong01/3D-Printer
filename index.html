@@ -1734,13 +1734,40 @@ function generatePromptPayQR(amount){
   const payload=fmtTLV('00','01')+fmtTLV('01','12')+fmtTLV('29',merchantAccount)+'5303764'+fmtTLV('54',amtStr)+'5802TH'+'6304';
   const finalPayload=payload+crc16(payload);
   const canvas=document.getElementById('promptpay-qr');
-  const doQR=()=>QRCode.toCanvas(canvas,finalPayload,{width:180,margin:1,color:{dark:'#000000',light:'#ffffff'}},e=>{if(e)console.error('QR:',e);});
-  if(window.QRCode){ doQR(); }
-  else {
-    const s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-    s.onload=doQR; document.head.appendChild(s);
-  }
+  const doQR=()=>{
+    // ใช้ qrcode library (npm: qrcode) — toCanvas API
+    if(window.QRCode && window.QRCode.toCanvas){
+      window.QRCode.toCanvas(canvas,finalPayload,{width:180,margin:1,color:{dark:'#000000',light:'#ffffff'}});
+    } else {
+      // fallback: ใช้ Google Charts API
+      const size=180;
+      const img=document.createElement('img');
+      img.src=`https://chart.googleapis.com/chart?chs=${size}x${size}&cht=qr&chl=${encodeURIComponent(finalPayload)}&choe=UTF-8`;
+      img.width=size; img.height=size; img.style.borderRadius='4px';
+      canvas.parentNode.replaceChild(img,canvas);
+    }
+  };
+  // โหลด qrcode.js (umd build ที่มี toCanvas)
+  if(window.QRCode && window.QRCode.toCanvas){ doQR(); return; }
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  s.onload=()=>{
+    // qrcodejs ใช้ new QRCode(el, opts) ไม่ใช่ toCanvas → ใช้ fallback Google Charts แทน
+    const size=180;
+    const img=document.createElement('img');
+    img.src=`https://chart.googleapis.com/chart?chs=${size}x${size}&cht=qr&chl=${encodeURIComponent(finalPayload)}&choe=UTF-8`;
+    img.width=size; img.height=size; img.style.borderRadius='4px';
+    canvas.parentNode.replaceChild(img,canvas);
+  };
+  s.onerror=()=>{
+    // ถ้าโหลด script ไม่ได้ก็ใช้ Google Charts เลย
+    const size=180;
+    const img=document.createElement('img');
+    img.src=`https://chart.googleapis.com/chart?chs=${size}x${size}&cht=qr&chl=${encodeURIComponent(finalPayload)}&choe=UTF-8`;
+    img.width=size; img.height=size; img.style.borderRadius='4px';
+    canvas.parentNode.replaceChild(img,canvas);
+  };
+  document.head.appendChild(s);
 }
 let _slipFile=null;
 function previewSlip(file){
