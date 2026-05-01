@@ -1250,7 +1250,7 @@ async function apiCall(method, path, body){
   return data;
 }
 let adminSettings=JSON.parse(localStorage.getItem('p3d_admin')||'{}');
-let orders=JSON.parse(localStorage.getItem('p3d_orders')||'[]');
+let orders=[];
 let quotes=JSON.parse(localStorage.getItem('p3d_quotes')||'[]');
 let addresses=JSON.parse(localStorage.getItem('p3d_addrs')||'[]');
 let coupons=JSON.parse(localStorage.getItem('p3d_coupons')||JSON.stringify([{code:'SAVE10',type:'percent',val:10,used:0},{code:'NEWUSER',type:'fixed',val:50,used:0},{code:'P3D20',type:'percent',val:20,used:0}]));
@@ -1653,7 +1653,8 @@ async function submitOrder(){
   const orderData={orderId:'ORD-'+Date.now(),files:fileList,fileUrls,tech:S.tech==='fdm'?'FDM':'SLA',material:S.matName,color:S.color,size:S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0),qty:totalQty,price:grand,infill:S.infill,layer:S.layerVal+'mm',note,coupon:activeCoupon?.code||null,status:'pending',name:n,phone:p,addr};
   try{ await apiCall('POST','/orders',orderData); }catch(e){ console.warn('save order:',e.message); }
   orders.unshift({id:orderData.orderId,date:new Date().toLocaleDateString('th-TH'),...orderData,statusIdx:0});
-  localStorage.setItem('p3d_orders',JSON.stringify(orders));
+  const myKey='p3d_orders_'+(currentUser?.id||'guest');
+  localStorage.setItem(myKey,JSON.stringify(orders));
   document.getElementById('order-modal-body').style.display='none';
   document.getElementById('order-success').style.display='block';
   activeCoupon=null;
@@ -1678,17 +1679,21 @@ async function renderOrders(){
   el.innerHTML='<div class="empty-state">กำลังโหลด...</div>';
   try{
     const data=await apiCall('GET','/orders');
-    console.log('[DEBUG /orders raw]', JSON.stringify(data).slice(0,500));
     if(!Array.isArray(data)){
       el.innerHTML=`<div class="empty-state" style="color:var(--red)">⚠ API ส่งข้อมูลผิดรูปแบบ: ${JSON.stringify(data).slice(0,200)}</div>`;
       return;
     }
     orders=data.map(o=>({...o,id:o.orderId||o._id,file:o.files||o.file,mat:o.material||o.mat,date:o.date||new Date(o.createdAt).toLocaleDateString('th-TH'),statusIdx:Math.max(0,STATUS_STEPS.indexOf(o.status))}));
+    // sync เฉพาะของ user นี้ลง localStorage
+    const myKey='p3d_orders_'+(currentUser?.id||'guest');
+    localStorage.setItem(myKey, JSON.stringify(orders));
   }catch(e){
     console.error('[renderOrders error]', e);
-    // API ไม่พร้อม — ใช้ข้อมูลจาก localStorage แทน ห้ามล้างทิ้ง
-    const saved=localStorage.getItem('p3d_orders');
-    if(saved) try{ orders=JSON.parse(saved); }catch(_){}
+    // fallback: โหลดเฉพาะ order ของ user นี้จาก localStorage
+    const myKey='p3d_orders_'+(currentUser?.id||'guest');
+    const saved=localStorage.getItem(myKey);
+    if(saved) try{ orders=JSON.parse(saved); }catch(_){ orders=[]; }
+    else orders=[];
     if(!orders.length){
       el.innerHTML=`<div class="empty-state" style="color:var(--red)">⚠ โหลดไม่สำเร็จ: ${e.message}</div>`;
       return;
