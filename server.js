@@ -1,4 +1,3 @@
-
 const express    = require('express');
 const multer     = require('multer');
 const cors       = require('cors');
@@ -224,7 +223,7 @@ app.put('/admin/users/:id/role', auth, adminOnly, async (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ===== FILE UPLOAD TO CLOUDINARY =====
+// multer สำหรับ STL/STEP/3MF
 const uploadStorage = multer.memoryStorage();
 const fileUpload = multer({
   storage: uploadStorage,
@@ -233,6 +232,16 @@ const fileUpload = multer({
     const ext = path.extname(file.originalname).toLowerCase();
     if (['.stl','.step','.3mf','.obj'].includes(ext)) cb(null, true);
     else cb(new Error('ไฟล์ต้องเป็น STL, STEP, 3MF หรือ OBJ เท่านั้น'));
+  }
+});
+
+// multer แยกสำหรับสลิป (รูปภาพ)
+const slipUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('ไฟล์ต้องเป็นรูปภาพเท่านั้น'));
   }
 });
 
@@ -269,7 +278,7 @@ app.post('/upload-file', fileUpload.single('file'), async (req, res) => {
 });
 
 // POST /upload-slip — ลูกค้าส่งสลิปการโอนเงิน
-app.post('/upload-slip', auth, fileUpload.single('file'), async (req, res) => {
+app.post('/upload-slip', auth, slipUpload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'ไม่พบไฟล์สลิป' });
   if (!CLOUDINARY_CLOUD_NAME) return res.status(503).json({ error: 'Cloudinary not configured' });
   try {
