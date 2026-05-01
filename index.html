@@ -980,7 +980,7 @@ body.in-app{overflow:hidden}
       <div class="sec-div" style="margin-top:14px">การจัดส่ง & ชำระเงิน</div>
       <div class="fg"><label>วิธีจัดส่ง</label><select id="o-ship" onchange="updateOrderTotal()"><option value="0">รับเอง (ฟรี) — MRT บางอ้อ</option><option value="50" selected>Kerry Express +฿50</option><option value="35">ไปรษณีย์ไทย +฿35</option><option value="120">Flash Express ด่วน +฿120</option><option value="0" data-grab="1">Grab (ส่งด่วน) — ชำระค่าส่งปลายทาง</option></select></div>
       <div id="ship-note" style="font-size:12px;color:var(--muted);margin-top:-8px;padding:6px 10px;background:var(--surface);border-radius:6px;display:none"></div>
-      <div class="fg"><label>วิธีชำระเงิน</label><select><option>โอนผ่านธนาคาร</option><option>PromptPay</option><option>บัตรเครดิต/เดบิต</option></select></div>
+      <div class="fg"><label>วิธีชำระเงิน</label><select id="o-payment" onchange="updatePaymentDisplay()"><option value="bank">โอนผ่านธนาคาร</option><option value="promptpay">PromptPay</option></select></div>
       <div class="fg"><label>หมายเหตุ</label><textarea id="o-note2" style="min-height:60px" placeholder="หมายเหตุการจัดส่ง"></textarea></div>
       <button class="submit-btn" onclick="submitOrder()">ยืนยันคำสั่งซื้อ ฿<span id="final-btn">0</span></button>
     </div>
@@ -990,8 +990,23 @@ body.in-app{overflow:hidden}
           <div style="font-size:22px;font-weight:800;margin-bottom:4px">📦 สั่งซื้อสำเร็จ!</div>
           <div style="color:var(--muted);font-size:13px">กรุณาชำระเงินเพื่อให้เราเริ่มพิมพ์งาน</div>
         </div>
-        <!-- QR PromptPay -->
-        <div style="background:var(--surface);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+
+        <!-- โอนผ่านธนาคาร -->
+        <div id="payment-bank-info" style="background:var(--surface);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+          <div style="text-align:center;font-weight:700;margin-bottom:12px;font-size:14px">โอนผ่านธนาคาร</div>
+          <div style="display:flex;align-items:center;gap:12px;background:var(--card);border-radius:10px;padding:12px 16px;margin-bottom:8px">
+            <div style="width:42px;height:42px;background:#4e2d8c;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:13px;flex-shrink:0">SCB</div>
+            <div>
+              <div style="font-size:12px;color:var(--muted)">ธนาคารไทยพาณิชย์</div>
+              <div style="font-size:18px;font-weight:800;letter-spacing:1px;color:var(--text)">428-193269-2</div>
+              <div style="font-size:13px;color:var(--muted)">ชนสรณ์ ควรสุวรรณ</div>
+            </div>
+          </div>
+          <div style="text-align:center;font-size:22px;font-weight:800;color:var(--orange);margin-top:8px">฿<span id="bank-amount">0</span></div>
+        </div>
+
+        <!-- PromptPay QR -->
+        <div id="payment-promptpay-info" style="background:var(--surface);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border);display:none">
           <div style="text-align:center;font-weight:700;margin-bottom:10px;font-size:14px">ชำระผ่าน PromptPay</div>
           <div style="display:flex;justify-content:center;margin-bottom:10px">
             <div style="background:#fff;padding:10px;border-radius:10px;display:inline-block">
@@ -1002,6 +1017,7 @@ body.in-app{overflow:hidden}
           <div style="text-align:center;font-size:13px;color:var(--muted)">เบอร์: <strong style="color:var(--text)">087-618-3448</strong></div>
           <div style="text-align:center;font-size:22px;font-weight:800;color:var(--orange);margin-top:8px">฿<span id="qr-amount">0</span></div>
         </div>
+
         <!-- อัปโหลดสลิป -->
         <div style="background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--border)">
           <div style="font-weight:700;margin-bottom:10px;font-size:14px">📎 แนบสลิปการโอนเงิน</div>
@@ -1744,20 +1760,23 @@ async function submitOrder(){
   document.getElementById('order-success').style.display='block';
   // แสดง QR PromptPay
   document.getElementById('qr-amount').textContent=grand;
+  document.getElementById('bank-amount').textContent=grand;
   window._currentOrderId=orderData.orderId;
   window._currentOrderMongoId=null;
-  // หา mongo _id จาก orders ที่เพิ่งบันทึก
-  try{
-    const saved=await apiCall('GET','/orders');
-    const found=saved.find(o=>o.orderId===orderData.orderId);
-    if(found) window._currentOrderMongoId=found._id;
-  }catch(_){}
-  generatePromptPayQR(grand);
+  const paymentMethod=document.getElementById('o-payment')?.value||'promptpay';
+  updatePaymentDisplay();
+  if(paymentMethod==='promptpay') generatePromptPayQR(grand);
   clearSlip();
   activeCoupon=null;
 }
 
 /* ============ PROMPTPAY QR ============ */
+function updatePaymentDisplay(){
+  const method=document.getElementById('o-payment')?.value||'promptpay';
+  document.getElementById('payment-bank-info').style.display=method==='bank'?'block':'none';
+  document.getElementById('payment-promptpay-info').style.display=method==='promptpay'?'block':'none';
+}
+
 function generatePromptPayQR(amount){
   const phone='0876183448'.replace(/\D/g,'');
   const phoneFormatted='0066'+phone.slice(1);
