@@ -1994,7 +1994,7 @@ function renderAdminOrders(){
         </td>
         <td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.files||o.file||'—'}</td>
         <td style="color:var(--orange);font-weight:600">฿${o.price}</td>
-        <td><span class="badge ${STATUS_STEPS[o.statusIdx]}">${STATUS_LABEL[STATUS_STEPS[o.statusIdx]]}</span></td>
+        <td><span class="badge ${STATUS_STEPS[o.statusIdx]}">${STATUS_LABEL[STATUS_STEPS[o.statusIdx]]}</span>${o.slipUrl?'<span style="margin-left:6px;font-size:11px;color:#22c55e">🧾</span>':o.status==='pending'?'<span style="margin-left:6px;font-size:11px;color:var(--muted)">⏳</span>':''}</td>
         <td>${o.statusIdx<STATUS_STEPS.length-1
           ?`<button class="order-action-btn" onclick="event.stopPropagation();advanceAdminOrder('${o._id}',${o.statusIdx},this)">→ ${STATUS_LABEL[STATUS_STEPS[o.statusIdx+1]]}</button>`
           :'<span style="color:var(--green);font-size:12px">เสร็จสิ้น</span>'}</td>
@@ -2056,7 +2056,7 @@ function renderAdminOrders(){
                 <div>วิธีส่ง: <span style="color:var(--text)">${o.shippingMethod||'—'}</span>${o.shipping>0?` <span style="color:var(--orange)">(+฿${o.shipping})</span>`:' <span style="color:var(--green)">(ฟรี)</span>'}</div>
                 <div>ราคารวม: <span style="color:var(--orange);font-weight:700;font-size:15px">฿${o.price}</span></div>
               </div>
-              ${o.slipUrl?`
+              ${(o.slipUrl)?`
                 <div style="margin-top:12px;font-weight:700;color:var(--text)">🧾 สลิปการโอนเงิน</div>
                 <div style="margin-top:6px">
                   <a href="${o.slipUrl}" target="_blank">
