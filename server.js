@@ -309,7 +309,7 @@ app.post('/upload-slip', auth, slipUpload.single('file'), async (req, res) => {
 // PUT /admin/orders/:id/confirm-payment — Admin ยืนยันการชำระเงิน
 app.put('/admin/orders/:id/confirm-payment', auth, adminOnly, async (req, res) => {
   try {
-    res.json(await Order.findByIdAndUpdate(req.params.id, { status: 'printing' }, { new: true }));
+    res.json(await Order.findByIdAndUpdate(req.params.id, { status: 'confirmed' }, { new: true }));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
