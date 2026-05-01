@@ -1763,6 +1763,12 @@ async function submitOrder(){
   document.getElementById('bank-amount').textContent=grand;
   window._currentOrderId=orderData.orderId;
   window._currentOrderMongoId=null;
+  // หา mongo _id จาก orders ที่เพิ่งบันทึก
+  try{
+    const saved=await apiCall('GET','/orders');
+    const found=saved.find(o=>o.orderId===orderData.orderId);
+    if(found) window._currentOrderMongoId=found._id;
+  }catch(_){}
   const paymentMethod=document.getElementById('o-payment')?.value||'promptpay';
   updatePaymentDisplay();
   if(paymentMethod==='promptpay') generatePromptPayQR(grand);
