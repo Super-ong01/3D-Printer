@@ -1365,9 +1365,6 @@ function showApp(section,el){
   if(section==='print')requestAnimationFrame(resizeV);
 }
 function showAdmin(){
-  // reload orders/quotes จาก localStorage เสมอก่อน render
-  try{ orders=JSON.parse(localStorage.getItem('p3d_orders')||'[]'); }catch(_){}
-  try{ quotes=JSON.parse(localStorage.getItem('p3d_quotes')||'[]'); }catch(_){}
   showPage('pg-admin');renderAdminDashboard();renderAdminOrders();renderCouponList();renderMaterialToggles();renderPriceInputs();document.getElementById('user-menu').classList.remove('on');
 }
 async function debugFetchOrders(){
@@ -1739,71 +1736,103 @@ function switchAdmin(sec,el){document.querySelectorAll('.admin-section').forEach
 function renderAdminDashboard(){document.getElementById('adm-total-orders').textContent=orders.length;document.getElementById('adm-pending').textContent=orders.filter(o=>o.statusIdx===0).length;document.getElementById('adm-revenue').textContent='฿'+orders.reduce((s,o)=>s+o.price,0).toLocaleString();document.getElementById('adm-coupons-used').textContent=coupons.reduce((s,c)=>s+(c.used||0),0);const el=document.getElementById('adm-recent-orders');if(!orders.length){el.innerHTML='<p style="color:var(--muted);padding:1rem">ยังไม่มีออเดอร์</p>';return;}el.innerHTML=`<table class="hist-table"><thead><tr><th>เลขที่</th><th>วันที่</th><th>ลูกค้า</th><th>ราคา</th><th>สถานะ</th></tr></thead><tbody>${orders.slice(0,5).map(o=>`<tr><td style="font-family:var(--mono);font-size:11px">${o.id}</td><td>${o.date}</td><td>${o.name}</td><td style="color:var(--orange);font-weight:600">฿${o.price}</td><td><span class="badge ${STATUS_STEPS[o.statusIdx]}">${STATUS_LABEL[STATUS_STEPS[o.statusIdx]]}</span></td></tr>`).join('')}</tbody></table>`;}
 function renderAdminOrders(){
   const el=document.getElementById('adm-orders-table');
-  // debug: แสดงจำนวน orders ที่มีอยู่
-  const dbg=`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;padding:6px 10px;background:var(--surface);border-radius:6px;font-family:var(--mono)">📊 orders ในหน่วยความจำ: ${orders.length} รายการ | localStorage: ${JSON.parse(localStorage.getItem('p3d_orders')||'[]').length} รายการ</div>`;
-  if(!orders.length){el.innerHTML=dbg+'<div class="empty-state">📦 ยังไม่มีออเดอร์</div>';return;}
-  el.innerHTML=dbg+`<table class="hist-table"><thead><tr>
-    <th>เลขที่</th><th>ลูกค้า</th><th>ไฟล์/งาน</th><th>ราคา</th><th>สถานะ</th><th>อัปเดต</th>
-  </tr></thead><tbody>${orders.map((o,i)=>`
-    <tr style="cursor:pointer" onclick="toggleOrderDetail('od-${i}')">
-      <td style="font-family:var(--mono);font-size:11px">${o.id||o.orderId}</td>
-      <td>
-        <div style="font-weight:600">${o.name}</div>
-        <div style="font-size:11px;color:var(--muted)">${o.phone}</div>
-      </td>
-      <td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.files||o.file||'—'}</td>
-      <td style="color:var(--orange);font-weight:600">฿${o.price}</td>
-      <td><span class="badge ${STATUS_STEPS[o.statusIdx]}">${STATUS_LABEL[STATUS_STEPS[o.statusIdx]]}</span></td>
-      <td>${o.statusIdx<STATUS_STEPS.length-1
-        ?`<button class="order-action-btn" onclick="event.stopPropagation();advanceOrder(${i})">→ ${STATUS_LABEL[STATUS_STEPS[o.statusIdx+1]]}</button>`
-        :'<span style="color:var(--green);font-size:12px">เสร็จสิ้น</span>'}</td>
-    </tr>
-    <tr id="od-${i}" style="display:none">
-      <td colspan="6" style="background:var(--card);padding:16px;border-bottom:1px solid var(--border)">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
-          <div>
-            <div style="font-weight:700;margin-bottom:8px;color:var(--orange)">📦 รายละเอียดงาน</div>
-            <div style="display:flex;flex-direction:column;gap:4px;color:var(--muted)">
-              <div>ไฟล์: <span style="color:var(--text)">${o.files||o.file||'—'}</span></div>
-              ${(o.fileUrls||[]).filter(f=>f.url).map(f=>`
-                <div style="margin-top:4px">
-                  <a href="${f.url}" target="_blank" download="${f.name}"
-                    style="display:inline-flex;align-items:center;gap:6px;background:var(--orange);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">
-                    ⬇ ${f.name}
-                  </a>
-                </div>
-              `).join('')}
-              <div>เทคโนโลยี: <span style="color:var(--text)">${o.tech||'—'}</span></div>
-              <div>วัสดุ/สี: <span style="color:var(--text)">${o.material||o.mat||'—'} / ${o.color||'—'}</span></div>
-              <div>ขนาด: <span style="color:var(--text)">${o.size||'—'} mm</span></div>
-              <div>จำนวน: <span style="color:var(--text)">${o.qty||1} ชิ้น</span></div>
-              <div>Infill: <span style="color:var(--text)">${o.infill||'—'}%</span></div>
-              <div>Layer: <span style="color:var(--text)">${o.layer||'—'}</span></div>
-              ${o.note?`<div>หมายเหตุ: <span style="color:var(--text)">${o.note}</span></div>`:''}
-              ${o.coupon?`<div>Coupon: <span style="color:var(--green)">${o.coupon}</span></div>`:''}
+  el.innerHTML='<div class="empty-state">กำลังโหลด...</div>';
+  apiCall('GET','/admin/orders').then(data=>{
+    // /admin/orders populate userId → { name, email, phone }
+    const adminOrders=data.map(o=>({
+      ...o,
+      id: o.orderId||o._id,
+      file: o.files||o.file,
+      mat: o.material||o.mat,
+      // ถ้า userId เป็น object (populated) ดึงชื่อจากนั้น
+      name: o.name||(o.userId?.name)||'—',
+      phone: o.phone||(o.userId?.phone)||(o.userId?.email)||'—',
+      date: o.date||new Date(o.createdAt).toLocaleDateString('th-TH'),
+      statusIdx: Math.max(0,STATUS_STEPS.indexOf(o.status))
+    }));
+    const dbg=`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;padding:6px 10px;background:var(--surface);border-radius:6px;font-family:var(--mono)">📊 ออเดอร์ทั้งหมด: ${adminOrders.length} รายการ</div>`;
+    if(!adminOrders.length){el.innerHTML=dbg+'<div class="empty-state">📦 ยังไม่มีออเดอร์</div>';return;}
+    el.innerHTML=dbg+`<table class="hist-table"><thead><tr>
+      <th>เลขที่</th><th>ลูกค้า</th><th>ไฟล์/งาน</th><th>ราคา</th><th>สถานะ</th><th>อัปเดต</th>
+    </tr></thead><tbody>${adminOrders.map((o,i)=>`
+      <tr style="cursor:pointer" onclick="toggleOrderDetail('od-${i}')">
+        <td style="font-family:var(--mono);font-size:11px">${o.id||o.orderId}</td>
+        <td>
+          <div style="font-weight:600">${o.name}</div>
+          <div style="font-size:11px;color:var(--muted)">${o.phone}</div>
+        </td>
+        <td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.files||o.file||'—'}</td>
+        <td style="color:var(--orange);font-weight:600">฿${o.price}</td>
+        <td><span class="badge ${STATUS_STEPS[o.statusIdx]}">${STATUS_LABEL[STATUS_STEPS[o.statusIdx]]}</span></td>
+        <td>${o.statusIdx<STATUS_STEPS.length-1
+          ?`<button class="order-action-btn" onclick="event.stopPropagation();advanceAdminOrder('${o._id}',${o.statusIdx},this)">→ ${STATUS_LABEL[STATUS_STEPS[o.statusIdx+1]]}</button>`
+          :'<span style="color:var(--green);font-size:12px">เสร็จสิ้น</span>'}</td>
+      </tr>
+      <tr id="od-${i}" style="display:none">
+        <td colspan="6" style="background:var(--card);padding:16px;border-bottom:1px solid var(--border)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
+            <div>
+              <div style="font-weight:700;margin-bottom:8px;color:var(--orange)">📦 รายละเอียดงาน</div>
+              <div style="display:flex;flex-direction:column;gap:4px;color:var(--muted)">
+                <div>ไฟล์: <span style="color:var(--text)">${o.files||o.file||'—'}</span></div>
+                ${(o.fileUrls||[]).filter(f=>f.url).map(f=>`
+                  <div style="margin-top:4px">
+                    <a href="${f.url}" target="_blank" download="${f.name}"
+                      style="display:inline-flex;align-items:center;gap:6px;background:var(--orange);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">
+                      ⬇ ${f.name}
+                    </a>
+                  </div>
+                `).join('')}
+                <div>เทคโนโลยี: <span style="color:var(--text)">${o.tech||'—'}</span></div>
+                <div>วัสดุ/สี: <span style="color:var(--text)">${o.material||o.mat||'—'} / ${o.color||'—'}</span></div>
+                <div>ขนาด: <span style="color:var(--text)">${o.size||'—'} mm</span></div>
+                <div>จำนวน: <span style="color:var(--text)">${o.qty||1} ชิ้น</span></div>
+                <div>Infill: <span style="color:var(--text)">${o.infill||'—'}%</span></div>
+                <div>Layer: <span style="color:var(--text)">${o.layer||'—'}</span></div>
+                ${o.note?`<div>หมายเหตุ: <span style="color:var(--text)">${o.note}</span></div>`:''}
+                ${o.coupon?`<div>Coupon: <span style="color:var(--green)">${o.coupon}</span></div>`:''}
+              </div>
+            </div>
+            <div>
+              <div style="font-weight:700;margin-bottom:8px;color:var(--orange)">🚚 ที่อยู่จัดส่ง</div>
+              <div style="display:flex;flex-direction:column;gap:4px;color:var(--muted)">
+                <div>ชื่อ: <span style="color:var(--text);font-weight:600">${o.name||'—'}</span></div>
+                <div>เบอร์: <span style="color:var(--text)">${o.phone||'—'}</span></div>
+                <div>ที่อยู่: <span style="color:var(--text)">${o.addr||'—'}</span></div>
+                <div style="margin-top:8px">วันที่สั่ง: <span style="color:var(--text)">${o.date}</span></div>
+                <div>ราคารวม: <span style="color:var(--orange);font-weight:700;font-size:15px">฿${o.price}</span></div>
+              </div>
             </div>
           </div>
-          <div>
-            <div style="font-weight:700;margin-bottom:8px;color:var(--orange)">🚚 ที่อยู่จัดส่ง</div>
-            <div style="display:flex;flex-direction:column;gap:4px;color:var(--muted)">
-              <div>ชื่อ: <span style="color:var(--text);font-weight:600">${o.name||'—'}</span></div>
-              <div>เบอร์: <span style="color:var(--text)">${o.phone||'—'}</span></div>
-              <div>ที่อยู่: <span style="color:var(--text)">${o.addr||'—'}</span></div>
-              <div style="margin-top:8px">วันที่สั่ง: <span style="color:var(--text)">${o.date||o.createdAt||'—'}</span></div>
-              <div>ราคารวม: <span style="color:var(--orange);font-weight:700;font-size:15px">฿${o.price}</span></div>
-            </div>
-          </div>
-        </div>
-      </td>
-    </tr>
-  `).join('')}</tbody></table>`;
+        </td>
+      </tr>
+    `).join('')}</tbody></table>`;
+    // sync orders variable สำหรับ dashboard
+    orders=adminOrders;
+    renderAdminDashboard();
+  }).catch(e=>{
+    el.innerHTML=`<div class="empty-state" style="color:var(--red)">⚠ โหลดไม่สำเร็จ: ${e.message}</div>`;
+  });
 }
 
 function toggleOrderDetail(id){
   const el=document.getElementById(id);
   if(el) el.style.display=el.style.display==='none'?'table-row':'none';
 }
-function advanceOrder(i){if(orders[i].statusIdx<STATUS_STEPS.length-1){orders[i].statusIdx++;const s=STATUS_STEPS[orders[i].statusIdx];if(!orders[i].timestamps)orders[i].timestamps={};orders[i].timestamps[s]=new Date().toLocaleString('th-TH');localStorage.setItem('p3d_orders',JSON.stringify(orders));renderAdminOrders();renderAdminDashboard();}}
+async function advanceAdminOrder(mongoId, currentIdx, btn){
+  const nextIdx=currentIdx+1;
+  if(nextIdx>=STATUS_STEPS.length) return;
+  const nextStatus=STATUS_STEPS[nextIdx];
+  btn.disabled=true; btn.textContent='กำลังอัปเดต...';
+  try{
+    await apiCall('PUT',`/admin/orders/${mongoId}/status`,{status:nextStatus});
+    renderAdminOrders(); // reload ทั้งหมด
+  }catch(e){
+    btn.disabled=false;
+    btn.textContent=`→ ${STATUS_LABEL[nextStatus]}`;
+    alert('อัปเดตไม่สำเร็จ: '+e.message);
+  }
+}
 function renderPriceInputs(){document.getElementById('fdm-price-inputs').innerHTML=Object.entries(adminSettings.fdmMats).map(([n,m])=>`<div class="price-input-row"><div class="pir-label">${n}</div><div class="pir-input"><input type="number" value="${m.rate}" min="0.5" step="0.1" onchange="adminSettings.fdmMats['${n}'].rate=+this.value;saveAdminSettings()"><span class="pir-unit">฿/g</span></div></div>`).join('');document.getElementById('sla-price-inputs').innerHTML=Object.entries(adminSettings.slaMats).map(([n,m])=>`<div class="price-input-row"><div class="pir-label">${n}</div><div class="pir-input"><input type="number" value="${m.rate}" min="1" step="0.1" onchange="adminSettings.slaMats['${n}'].rate=+this.value;saveAdminSettings()"><span class="pir-unit">฿/g</span></div></div>`).join('');document.getElementById('adm-time-rate').value=adminSettings.timeRate||20;}
 function renderMaterialToggles(){
   document.getElementById('t-fdm').className='toggle'+(adminSettings.fdmEnabled?' on':'');
