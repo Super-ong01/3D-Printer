@@ -1775,7 +1775,7 @@ function renderAdminOrders(){
               <div style="font-weight:700;margin-bottom:8px;color:var(--orange)">📦 รายละเอียดงาน</div>
               <div style="display:flex;flex-direction:column;gap:4px;color:var(--muted)">
                 <div>ไฟล์: <span style="color:var(--text)">${o.files||o.file||'—'}</span></div>
-                ${(o.fileUrls||[]).filter(f=>f.url).map(f=>`
+                ${(o.fileUrls||[]).filter(f=>f&&f.url).map(f=>`
                   <div style="margin-top:4px">
                     <a href="${f.url}" target="_blank" download="${f.name}"
                       style="display:inline-flex;align-items:center;gap:6px;background:var(--orange);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">
@@ -1783,6 +1783,7 @@ function renderAdminOrders(){
                     </a>
                   </div>
                 `).join('')}
+                ${!(o.fileUrls||[]).filter(f=>f&&f.url).length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">⚠ ไม่มีลิงก์ดาวน์โหลด (order เก่า)</div>`:''}
                 <div>เทคโนโลยี: <span style="color:var(--text)">${o.tech||'—'}</span></div>
                 <div>วัสดุ/สี: <span style="color:var(--text)">${o.material||o.mat||'—'} / ${o.color||'—'}</span></div>
                 <div>ขนาด: <span style="color:var(--text)">${o.size||'—'} mm</span></div>
