@@ -1140,7 +1140,7 @@ function initAuth(){
         currentUser = { id:payload.id, name:payload.name, email:payload.email, role:payload.role, picture:payload.picture };
         setupUserNav();
         // restore หน้าที่อยู่ก่อน refresh
-        const lastPage = sessionStorage.getItem('p3d_lastpage') || 'print';
+        const lastPage = localStorage.getItem('p3d_lastpage') || 'print';
         if(lastPage === 'admin' && currentUser.role === 'admin'){
           showAdmin();
         } else {
@@ -1344,7 +1344,7 @@ function showSidebarBottom(){
     });
   }
 }
-function logout(){currentUser=null;authToken=null;localStorage.removeItem('p3d_token');sessionStorage.removeItem('p3d_lastpage');document.getElementById('user-menu').classList.remove('on');document.getElementById('nav-r').style.display='flex';document.getElementById('nav-user').style.display='none';showPage('pg-landing');}
+function logout(){currentUser=null;authToken=null;localStorage.removeItem('p3d_token');localStorage.removeItem('p3d_lastpage');document.getElementById('user-menu').classList.remove('on');document.getElementById('nav-r').style.display='flex';document.getElementById('nav-user').style.display='none';showPage('pg-landing');}
 function setupUserNav(){
   document.getElementById('nav-r').style.display='none';
   document.getElementById('nav-user').style.display='flex';
@@ -1399,7 +1399,7 @@ window.addEventListener('popstate',(e)=>{
   }
 });
 function showApp(section,el){
-  sessionStorage.setItem('p3d_lastpage', section);
+  localStorage.setItem('p3d_lastpage', section);
   showPage('pg-app');
   document.querySelectorAll('.app-section').forEach(s=>s.style.display='none');
   document.getElementById('app-'+section).style.display='block';
@@ -1414,7 +1414,7 @@ function showApp(section,el){
   if(section==='print')requestAnimationFrame(resizeV);
 }
 function showAdmin(){
-  sessionStorage.setItem('p3d_lastpage', 'admin');
+  localStorage.setItem('p3d_lastpage', 'admin');
   showPage('pg-admin');renderAdminDashboard();renderAdminOrders();renderCouponList();renderMaterialToggles();renderPriceInputs();document.getElementById('user-menu').classList.remove('on');
 }
 async function debugFetchOrders(){
