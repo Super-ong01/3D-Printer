@@ -1813,13 +1813,23 @@ async function submitSlip(){
     if(window._currentOrderMongoId) fd.append('mongoId',window._currentOrderMongoId);
     const token=localStorage.getItem('p3d_token');
     const res=await fetch(API+'/upload-slip',{method:'POST',headers:token?{Authorization:'Bearer '+token}:{},body:fd});
+    // ตรวจสอบว่า response เป็น JSON จริงๆ ก่อน parse
+    const contentType=res.headers.get('content-type')||'';
+    if(!contentType.includes('application/json')){
+      const text=await res.text();
+      throw new Error('Server ยังไม่รองรับ endpoint นี้ — กรุณา deploy server.js ใหม่ก่อน\n\n'+text.slice(0,100));
+    }
     const data=await res.json();
     if(!res.ok) throw new Error(data.error||'Upload failed');
     status.innerHTML='<span style="color:var(--green)">✓ ส่งสลิปสำเร็จ! Admin จะยืนยันภายใน 1-2 ชั่วโมง</span>';
     btn.textContent='ส่งแล้ว ✓'; btn.style.background='#22c55e';
   }catch(e){
-    status.innerHTML=`<span style="color:var(--red)">⚠ ${e.message}</span>`;
+    const msg=e.message.includes('deploy')?
+      '⚠ กรุณาอัปเดต server.js แล้ว deploy ใหม่ก่อนใช้ฟีเจอร์นี้':
+      '⚠ '+e.message;
+    status.innerHTML=`<div style="color:var(--red);font-size:12px">${msg}</div>`;
     btn.disabled=false; btn.textContent='ส่งหลักฐานการชำระเงิน'; btn.style.opacity='1';
+    console.error('[submitSlip]',e);
   }
 }
 
