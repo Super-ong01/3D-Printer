@@ -985,10 +985,48 @@ body.in-app{overflow:hidden}
     </div>
     <div id="order-success" style="display:none">
       <div class="success-wrap">
-        <div class="success-icon">✓</div>
-        <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">ส่งคำสั่งซื้อแล้ว!</h3>
-        <p style="color:var(--muted);margin-bottom:16px">เราจะติดต่อคุณภายใน 1-2 ชั่วโมง</p>
-        <button onclick="closeOrderModal();showApp('orders',null)" style="background:var(--orange);color:#fff;padding:10px 24px;border-radius:8px;border:none;font-family:var(--font);font-size:14px;cursor:pointer;font-weight:600">ดูประวัติคำสั่งซื้อ</button>
+        <div style="text-align:center;margin-bottom:16px">
+          <div style="font-size:22px;font-weight:800;margin-bottom:4px">📦 สั่งซื้อสำเร็จ!</div>
+          <div style="color:var(--muted);font-size:13px">กรุณาชำระเงินเพื่อให้เราเริ่มพิมพ์งาน</div>
+        </div>
+        <!-- QR PromptPay -->
+        <div style="background:var(--surface);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+          <div style="text-align:center;font-weight:700;margin-bottom:10px;font-size:14px">ชำระผ่าน PromptPay</div>
+          <div style="display:flex;justify-content:center;margin-bottom:10px">
+            <div style="background:#fff;padding:10px;border-radius:10px;display:inline-block">
+              <canvas id="promptpay-qr" width="180" height="180"></canvas>
+            </div>
+          </div>
+          <div style="text-align:center;font-size:13px;color:var(--muted)">ชื่อบัญชี: <strong style="color:var(--text)">ชนสรณ์ ควรสุวรรณ</strong></div>
+          <div style="text-align:center;font-size:13px;color:var(--muted)">เบอร์: <strong style="color:var(--text)">087-618-3448</strong></div>
+          <div style="text-align:center;font-size:22px;font-weight:800;color:var(--orange);margin-top:8px">฿<span id="qr-amount">0</span></div>
+        </div>
+        <!-- อัปโหลดสลิป -->
+        <div style="background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--border)">
+          <div style="font-weight:700;margin-bottom:10px;font-size:14px">📎 แนบสลิปการโอนเงิน</div>
+          <div id="slip-drop-zone" onclick="document.getElementById('slip-file-input').click()"
+            style="border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color .2s"
+            ondragover="event.preventDefault();this.style.borderColor='var(--orange)'"
+            ondragleave="this.style.borderColor='var(--border)'"
+            ondrop="handleSlipDrop(event)">
+            <div style="font-size:28px;margin-bottom:6px">🧾</div>
+            <div style="font-size:13px;color:var(--muted)">คลิกหรือลากสลิปมาวางที่นี่</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">JPG, PNG ไม่เกิน 5MB</div>
+          </div>
+          <input type="file" id="slip-file-input" accept="image/*" style="display:none" onchange="previewSlip(this.files[0])">
+          <div id="slip-preview-wrap" style="display:none;margin-top:10px;text-align:center">
+            <img id="slip-preview-img" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--border)">
+            <div style="margin-top:6px">
+              <button onclick="clearSlip()" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer">เปลี่ยนสลิป</button>
+            </div>
+          </div>
+          <button id="slip-submit-btn" onclick="submitSlip()" disabled
+            style="width:100%;margin-top:12px;padding:12px;background:var(--orange);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;opacity:0.5;transition:opacity .2s">
+            ส่งหลักฐานการชำระเงิน
+          </button>
+          <div id="slip-status" style="text-align:center;font-size:13px;margin-top:8px;min-height:20px"></div>
+        </div>
+        <button onclick="closeOrderModal();showApp('orders',null)" style="width:100%;margin-top:12px;background:var(--surface);color:var(--muted);padding:10px;border-radius:8px;border:1px solid var(--border);font-family:var(--font);font-size:13px;cursor:pointer">ดูประวัติคำสั่งซื้อ →</button>
       </div>
     </div>
   </div>
@@ -1670,11 +1708,91 @@ async function submitOrder(){
   localStorage.setItem(myKey,JSON.stringify(orders));
   document.getElementById('order-modal-body').style.display='none';
   document.getElementById('order-success').style.display='block';
+  // แสดง QR PromptPay
+  document.getElementById('qr-amount').textContent=grand;
+  window._currentOrderId=orderData.orderId;
+  window._currentOrderMongoId=null;
+  // หา mongo _id จาก orders ที่เพิ่งบันทึก
+  try{
+    const saved=await apiCall('GET','/orders');
+    const found=saved.find(o=>o.orderId===orderData.orderId);
+    if(found) window._currentOrderMongoId=found._id;
+  }catch(_){}
+  generatePromptPayQR(grand);
+  clearSlip();
   activeCoupon=null;
 }
+
+/* ============ PROMPTPAY QR ============ */
+function generatePromptPayQR(amount){
+  const phone='0876183448'.replace(/\D/g,'');
+  const phoneFormatted='0066'+phone.slice(1);
+  function fmtTLV(tag,val){return tag+String(val.length).padStart(2,'0')+val;}
+  function crc16(str){let c=0xFFFF;for(let i=0;i<str.length;i++){c^=str.charCodeAt(i)<<8;for(let j=0;j<8;j++)c=c&0x8000?(c<<1)^0x1021:(c<<1);}return(c&0xFFFF).toString(16).toUpperCase().padStart(4,'0');}
+  const merchantAccount=fmtTLV('00','A000000677010111')+fmtTLV('01',phoneFormatted);
+  const amtStr=parseFloat(amount).toFixed(2);
+  const payload=fmtTLV('00','01')+fmtTLV('01','12')+fmtTLV('29',merchantAccount)+'5303764'+fmtTLV('54',amtStr)+'5802TH'+'6304';
+  const finalPayload=payload+crc16(payload);
+  const canvas=document.getElementById('promptpay-qr');
+  const doQR=()=>QRCode.toCanvas(canvas,finalPayload,{width:180,margin:1,color:{dark:'#000000',light:'#ffffff'}},e=>{if(e)console.error('QR:',e);});
+  if(window.QRCode){ doQR(); }
+  else {
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s.onload=doQR; document.head.appendChild(s);
+  }
+}
+let _slipFile=null;
+function previewSlip(file){
+  if(!file) return; _slipFile=file;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('slip-preview-img').src=e.target.result;
+    document.getElementById('slip-preview-wrap').style.display='block';
+    document.getElementById('slip-drop-zone').style.display='none';
+    const btn=document.getElementById('slip-submit-btn');
+    btn.disabled=false; btn.style.opacity='1';
+  };
+  reader.readAsDataURL(file);
+}
+function handleSlipDrop(e){
+  e.preventDefault();
+  document.getElementById('slip-drop-zone').style.borderColor='var(--border)';
+  const file=e.dataTransfer.files[0];
+  if(file&&file.type.startsWith('image/')) previewSlip(file);
+}
+function clearSlip(){
+  _slipFile=null;
+  document.getElementById('slip-preview-wrap').style.display='none';
+  document.getElementById('slip-drop-zone').style.display='block';
+  document.getElementById('slip-file-input').value='';
+  const btn=document.getElementById('slip-submit-btn');
+  btn.disabled=true; btn.style.opacity='0.5';
+  document.getElementById('slip-status').textContent='';
+}
+async function submitSlip(){
+  if(!_slipFile){alert('กรุณาเลือกสลิปก่อน');return;}
+  const btn=document.getElementById('slip-submit-btn');
+  const status=document.getElementById('slip-status');
+  btn.disabled=true; btn.textContent='กำลังส่ง...';
+  try{
+    const fd=new FormData();
+    fd.append('file',_slipFile);
+    fd.append('orderId',window._currentOrderId||'');
+    if(window._currentOrderMongoId) fd.append('mongoId',window._currentOrderMongoId);
+    const token=localStorage.getItem('p3d_token');
+    const res=await fetch(API+'/upload-slip',{method:'POST',headers:token?{Authorization:'Bearer '+token}:{},body:fd});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'Upload failed');
+    status.innerHTML='<span style="color:var(--green)">✓ ส่งสลิปสำเร็จ! Admin จะยืนยันภายใน 1-2 ชั่วโมง</span>';
+    btn.textContent='ส่งแล้ว ✓'; btn.style.background='#22c55e';
+  }catch(e){
+    status.innerHTML=`<span style="color:var(--red)">⚠ ${e.message}</span>`;
+    btn.disabled=false; btn.textContent='ส่งหลักฐานการชำระเงิน'; btn.style.opacity='1';
+  }
+}
+
 function saveQuote(){
-  if(!currentUser){gotoLogin();return;}
-  const grand=getTotalPrice();
   const fileList=models.length>1?models.map(m=>m.name).join(', '):(currentFile?.name||'—');
   const totalQty=models.reduce((s,m)=>s+m.qty,0)||S.qty;
   quotes.unshift({id:'QUO-'+Date.now(),date:new Date().toLocaleDateString('th-TH'),file:fileList,tech:S.tech==='fdm'?'FDM':'SLA',mat:S.matName,size:S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0),qty:totalQty,price:grand,status:'draft'});
@@ -1841,6 +1959,20 @@ function renderAdminOrders(){
                 <div style="margin-top:8px">วันที่สั่ง: <span style="color:var(--text)">${o.date}</span></div>
                 <div>ราคารวม: <span style="color:var(--orange);font-weight:700;font-size:15px">฿${o.price}</span></div>
               </div>
+              ${o.slipUrl?`
+                <div style="margin-top:12px;font-weight:700;color:var(--text)">🧾 สลิปการโอนเงิน</div>
+                <div style="margin-top:6px">
+                  <a href="${o.slipUrl}" target="_blank">
+                    <img src="${o.slipUrl}" style="max-width:100%;max-height:180px;border-radius:8px;border:2px solid var(--orange);cursor:pointer">
+                  </a>
+                </div>
+                ${o.status==='pending'?`
+                  <button onclick="confirmPayment('${o._id}',this)"
+                    style="margin-top:10px;width:100%;padding:10px;background:#22c55e;color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
+                    ✓ ยืนยันการชำระเงิน → เริ่มพิมพ์
+                  </button>
+                `:'<div style="margin-top:8px;color:#22c55e;font-size:13px;font-weight:600">✓ ยืนยันการชำระแล้ว</div>'}
+              `:`<div style="margin-top:10px;font-size:12px;color:var(--muted);padding:8px;background:var(--surface);border-radius:6px;border:1px dashed var(--border)">⏳ รอลูกค้าส่งสลิป</div>`}
             </div>
           </div>
         </td>
@@ -1852,6 +1984,17 @@ function renderAdminOrders(){
   }).catch(e=>{
     el.innerHTML=`<div class="empty-state" style="color:var(--red)">⚠ โหลดไม่สำเร็จ: ${e.message}</div>`;
   });
+}
+
+async function confirmPayment(mongoId, btn){
+  btn.disabled=true; btn.textContent='กำลังยืนยัน...';
+  try{
+    await apiCall('PUT',`/admin/orders/${mongoId}/confirm-payment`,{});
+    renderAdminOrders();
+  }catch(e){
+    btn.disabled=false; btn.textContent='✓ ยืนยันการชำระเงิน → เริ่มพิมพ์';
+    alert('เกิดข้อผิดพลาด: '+e.message);
+  }
 }
 
 function toggleOrderDetail(id){
