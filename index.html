@@ -343,6 +343,7 @@ body.in-app{overflow:hidden}
 .hist-table tr:hover td{background:var(--surface)}
 .badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600}
 .badge.pending{background:rgba(232,83,10,0.15);color:var(--om)}
+.badge.confirmed{background:rgba(250,204,21,0.15);color:#facc15}
 .badge.printing{background:rgba(96,165,250,0.15);color:var(--blue)}
 .badge.qc{background:rgba(167,139,250,0.15);color:#a78bfa}
 .badge.shipped{background:rgba(52,211,153,0.15);color:var(--green)}
@@ -893,6 +894,7 @@ body.in-app{overflow:hidden}
       <div class="hist-filter">
         <button class="hf-tab on" onclick="filterOrders('all',this)">ทั้งหมด</button>
         <button class="hf-tab" onclick="filterOrders('pending',this)">รอยืนยัน</button>
+        <button class="hf-tab" onclick="filterOrders('confirmed',this)">ยืนยันแล้ว</button>
         <button class="hf-tab" onclick="filterOrders('printing',this)">กำลังพิมพ์</button>
         <button class="hf-tab" onclick="filterOrders('shipped',this)">จัดส่งแล้ว</button>
         <button class="hf-tab" onclick="filterOrders('done',this)">เสร็จแล้ว</button>
@@ -1901,9 +1903,9 @@ function saveQuote(){
 }
 
 /* ============ HISTORY ============ */
-const STATUS_LABEL={pending:'รอยืนยัน',printing:'กำลังพิมพ์',qc:'QC',shipped:'จัดส่งแล้ว',done:'รับแล้ว'};
-const STATUS_STEPS=['pending','printing','qc','shipped','done'];
-const STATUS_ICONS={pending:'📋',printing:'🖨️',qc:'🔍',shipped:'🚚',done:'✅'};
+const STATUS_LABEL={pending:'รอยืนยัน',confirmed:'ยืนยันแล้ว',printing:'กำลังพิมพ์',qc:'QC',shipped:'จัดส่งแล้ว',done:'รับแล้ว'};
+const STATUS_STEPS=['pending','confirmed','printing','qc','shipped','done'];
+const STATUS_ICONS={pending:'📋',confirmed:'✅',printing:'🖨️',qc:'🔍',shipped:'🚚',done:'⭐'};
 function filterOrders(f,el){orderFilter=f;document.querySelectorAll('.hf-tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');renderOrders();}
 async function renderOrders(){
   const el=document.getElementById('orders-table');
