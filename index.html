@@ -978,7 +978,8 @@ body.in-app{overflow:hidden}
         <button onclick="saveAddress()" style="background:var(--dark);color:#fff;padding:8px 16px;border-radius:8px;border:none;font-family:var(--font);font-size:13px;cursor:pointer;font-weight:600">บันทึกที่อยู่</button>
       </div>
       <div class="sec-div" style="margin-top:14px">การจัดส่ง & ชำระเงิน</div>
-      <div class="fg"><label>วิธีจัดส่ง</label><select id="o-ship" onchange="updateOrderTotal()"><option value="0">รับเอง (ฟรี)</option><option value="50" selected>Kerry Express +฿50</option><option value="35">ไปรษณีย์ไทย +฿35</option><option value="120">Flash Express ด่วน +฿120</option></select></div>
+      <div class="fg"><label>วิธีจัดส่ง</label><select id="o-ship" onchange="updateOrderTotal()"><option value="0">รับเอง (ฟรี) — MRT บางอ้อ</option><option value="50" selected>Kerry Express +฿50</option><option value="35">ไปรษณีย์ไทย +฿35</option><option value="120">Flash Express ด่วน +฿120</option><option value="0" data-grab="1">Grab (ส่งด่วน) — ชำระค่าส่งปลายทาง</option></select></div>
+      <div id="ship-note" style="font-size:12px;color:var(--muted);margin-top:-8px;padding:6px 10px;background:var(--surface);border-radius:6px;display:none"></div>
       <div class="fg"><label>วิธีชำระเงิน</label><select><option>โอนผ่านธนาคาร</option><option>PromptPay</option><option>บัตรเครดิต/เดบิต</option></select></div>
       <div class="fg"><label>หมายเหตุ</label><textarea id="o-note2" style="min-height:60px" placeholder="หมายเหตุการจัดส่ง"></textarea></div>
       <button class="submit-btn" onclick="submitOrder()">ยืนยันคำสั่งซื้อ ฿<span id="final-btn">0</span></button>
@@ -1652,10 +1653,26 @@ function getTotalPrice(){
 
 function updateOrderTotal(){
   const sub=getTotalPrice();
-  const ship=parseInt(document.getElementById('o-ship')?.value||0);
+  const sel=document.getElementById('o-ship');
+  const ship=parseInt(sel?.value||0);
   const grand=sub+ship;
   document.getElementById('final-btn').textContent=grand;
   document.getElementById('cs-total').textContent=grand;
+  // แสดง note ตามวิธีจัดส่ง
+  const noteEl=document.getElementById('ship-note');
+  if(noteEl){
+    const opt=sel?.options[sel?.selectedIndex];
+    const txt=opt?.text||'';
+    if(txt.includes('รับเอง')){
+      noteEl.style.display='block';
+      noteEl.innerHTML='📍 <strong>ที่อยู่ร้าน:</strong> ใกล้สถานี MRT บางอ้อ — ติดต่อนัดรับได้ที่ 087-618-3448';
+    } else if(txt.includes('Grab')){
+      noteEl.style.display='block';
+      noteEl.innerHTML='🛵 <strong>Grab ส่งด่วน:</strong> ค่าส่ง Grab ชำระปลายทางแยกต่างหาก เราจะติดต่อนัดเวลาส่งหลังยืนยัน order';
+    } else {
+      noteEl.style.display='none';
+    }
+  }
   return grand;
 }
 function openOrderModal(){
@@ -1705,7 +1722,8 @@ async function submitOrder(){
   }));
   const shipEl=document.getElementById('o-ship');
   const ship=parseInt(shipEl?.value||0);
-  const shippingMethod=shipEl?.options[shipEl?.selectedIndex]?.text||'รับเอง';
+  const shippingMethodText=shipEl?.options[shipEl?.selectedIndex]?.text||'รับเอง';
+  const shippingMethod=shippingMethodText.includes('Grab')?'Grab (ชำระปลายทาง)':shippingMethodText;
   const orderData={orderId:'ORD-'+Date.now(),files:fileList,fileUrls,perFileDetails,tech:S.tech==='fdm'?'FDM':'SLA',material:S.matName,color:S.color,size:S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0),qty:totalQty,price:grand,shipping:ship,shippingMethod,infill:S.infill,layer:S.layerVal+'mm',note,coupon:activeCoupon?.code||null,status:'pending',name:n,phone:p,addr};
   try{ await apiCall('POST','/orders',orderData); }catch(e){ console.warn('save order:',e.message); }
   orders.unshift({id:orderData.orderId,date:new Date().toLocaleDateString('th-TH'),...orderData,statusIdx:0});
