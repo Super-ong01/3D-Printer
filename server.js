@@ -64,6 +64,8 @@ const orderSchema = new mongoose.Schema({
   files:    String,
   fileUrls: [{ name: String, url: String }],  // เพิ่ม field นี้
   perFileDetails: [{ name: String, url: String, qty: Number, tech: String, material: String, color: String, infill: Number, layer: String, price: Number, size: String }], // settings แยกตามไฟล์
+  slipUrl:  String,   // URL สลิปการโอนเงิน
+  slipUploadedAt: Date, // เวลาที่ส่งสลิป
   tech:     String,
   material: String,
   color:    String,
@@ -265,8 +267,41 @@ app.post('/upload-file', fileUpload.single('file'), async (req, res) => {
   }
 });
 
-// =====================================================================
-// ===== SLICER =====
+// POST /upload-slip — ลูกค้าส่งสลิปการโอนเงิน
+app.post('/upload-slip', auth, fileUpload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'ไม่พบไฟล์สลิป' });
+  if (!CLOUDINARY_CLOUD_NAME) return res.status(503).json({ error: 'Cloudinary not configured' });
+  try {
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: 'image', folder: 'print3dhub/slips',
+          public_id: `slip_${req.body.orderId||Date.now()}` },
+        (error, result) => { if (error) reject(error); else resolve(result); }
+      );
+      stream.end(req.file.buffer);
+    });
+    // อัปเดต order ใน MongoDB
+    if (req.body.mongoId) {
+      await Order.findByIdAndUpdate(req.body.mongoId, {
+        slipUrl: result.secure_url,
+        slipUploadedAt: new Date(),
+      });
+    }
+    res.json({ success: true, url: result.secure_url });
+  } catch (e) {
+    console.error('[Slip Upload] error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /admin/orders/:id/confirm-payment — Admin ยืนยันการชำระเงิน
+app.put('/admin/orders/:id/confirm-payment', auth, adminOnly, async (req, res) => {
+  try {
+    res.json(await Order.findByIdAndUpdate(req.params.id, { status: 'printing' }, { new: true }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+
 // =====================================================================
 let sliceRunning = false;
 const sliceQueue = [];
