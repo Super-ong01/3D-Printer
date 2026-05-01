@@ -1139,7 +1139,12 @@ function initAuth(){
       if(payload.exp * 1000 > Date.now()){
         currentUser = { id:payload.id, name:payload.name, email:payload.email, role:payload.role, picture:payload.picture };
         setupUserNav();
-        // ไม่ redirect อัตโนมัติ — ให้ user กดปุ่มเองจากหน้า landing
+        // restore หน้าที่อยู่ก่อน refresh
+        const lastPage = sessionStorage.getItem('p3d_lastpage') || 'print';
+        if(lastPage === 'admin' && currentUser.role === 'admin') showAdmin();
+        else if(lastPage === 'orders') showApp('orders', null);
+        else if(lastPage === 'quotes') showApp('quotes', null);
+        else if(lastPage === 'print') showApp('print', null);
         fetchUserData();
         return;
       }
@@ -1390,6 +1395,7 @@ window.addEventListener('popstate',(e)=>{
   }
 });
 function showApp(section,el){
+  sessionStorage.setItem('p3d_lastpage', section);
   showPage('pg-app');
   document.querySelectorAll('.app-section').forEach(s=>s.style.display='none');
   document.getElementById('app-'+section).style.display='block';
@@ -1404,6 +1410,7 @@ function showApp(section,el){
   if(section==='print')requestAnimationFrame(resizeV);
 }
 function showAdmin(){
+  sessionStorage.setItem('p3d_lastpage', 'admin');
   showPage('pg-admin');renderAdminDashboard();renderAdminOrders();renderCouponList();renderMaterialToggles();renderPriceInputs();document.getElementById('user-menu').classList.remove('on');
 }
 async function debugFetchOrders(){
