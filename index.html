@@ -1141,10 +1141,14 @@ function initAuth(){
         setupUserNav();
         // restore หน้าที่อยู่ก่อน refresh
         const lastPage = sessionStorage.getItem('p3d_lastpage') || 'print';
-        if(lastPage === 'admin' && currentUser.role === 'admin') showAdmin();
-        else if(lastPage === 'orders') showApp('orders', null);
-        else if(lastPage === 'quotes') showApp('quotes', null);
-        else if(lastPage === 'print') showApp('print', null);
+        if(lastPage === 'admin' && currentUser.role === 'admin'){
+          showAdmin();
+        } else {
+          const section = ['print','orders','quotes'].includes(lastPage) ? lastPage : 'print';
+          showPage('pg-app');
+          showApp(section, null);
+          showSidebarBottom();
+        }
         fetchUserData();
         return;
       }
@@ -1340,7 +1344,7 @@ function showSidebarBottom(){
     });
   }
 }
-function logout(){currentUser=null;document.getElementById('user-menu').classList.remove('on');document.getElementById('nav-r').style.display='flex';document.getElementById('nav-user').style.display='none';showPage('pg-landing');}
+function logout(){currentUser=null;authToken=null;localStorage.removeItem('p3d_token');sessionStorage.removeItem('p3d_lastpage');document.getElementById('user-menu').classList.remove('on');document.getElementById('nav-r').style.display='flex';document.getElementById('nav-user').style.display='none';showPage('pg-landing');}
 function setupUserNav(){
   document.getElementById('nav-r').style.display='none';
   document.getElementById('nav-user').style.display='flex';
