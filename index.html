@@ -1958,7 +1958,7 @@ function renderAdminOrders(){
       // ถ้า userId เป็น object (populated) ดึงชื่อจากนั้น
       name: o.name||(o.userId?.name)||'—',
       phone: o.phone||(o.userId?.phone)||(o.userId?.email)||'—',
-      date: o.date||new Date(o.createdAt).toLocaleDateString('th-TH'),
+      date: o.date||new Date(o.createdAt).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})+' '+new Date(o.createdAt).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}),
       statusIdx: Math.max(0,STATUS_STEPS.indexOf(o.status))
     }));
     const dbg=`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;padding:6px 10px;background:var(--surface);border-radius:6px;font-family:var(--mono)">📊 ออเดอร์ทั้งหมด: ${adminOrders.length} รายการ</div>`;
