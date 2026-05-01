@@ -66,6 +66,8 @@ const orderSchema = new mongoose.Schema({
   perFileDetails: [{ name: String, url: String, qty: Number, tech: String, material: String, color: String, infill: Number, layer: String, price: Number, size: String }], // settings แยกตามไฟล์
   slipUrl:  String,   // URL สลิปการโอนเงิน
   slipUploadedAt: Date, // เวลาที่ส่งสลิป
+  shipping: { type: Number, default: 0 },  // ค่าส่ง
+  shippingMethod: String,                   // วิธีจัดส่ง
   tech:     String,
   material: String,
   color:    String,
