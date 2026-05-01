@@ -978,7 +978,7 @@ body.in-app{overflow:hidden}
         <button onclick="saveAddress()" style="background:var(--dark);color:#fff;padding:8px 16px;border-radius:8px;border:none;font-family:var(--font);font-size:13px;cursor:pointer;font-weight:600">บันทึกที่อยู่</button>
       </div>
       <div class="sec-div" style="margin-top:14px">การจัดส่ง & ชำระเงิน</div>
-      <div class="fg"><label>วิธีจัดส่ง</label><select id="o-ship" onchange="recalc()"><option value="0">รับเอง (ฟรี)</option><option value="50" selected>Kerry Express +฿50</option><option value="35">ไปรษณีย์ไทย +฿35</option><option value="120">Flash Express ด่วน +฿120</option></select></div>
+      <div class="fg"><label>วิธีจัดส่ง</label><select id="o-ship" onchange="updateOrderTotal()"><option value="0">รับเอง (ฟรี)</option><option value="50" selected>Kerry Express +฿50</option><option value="35">ไปรษณีย์ไทย +฿35</option><option value="120">Flash Express ด่วน +฿120</option></select></div>
       <div class="fg"><label>วิธีชำระเงิน</label><select><option>โอนผ่านธนาคาร</option><option>PromptPay</option><option>บัตรเครดิต/เดบิต</option></select></div>
       <div class="fg"><label>หมายเหตุ</label><textarea id="o-note2" style="min-height:60px" placeholder="หมายเหตุการจัดส่ง"></textarea></div>
       <button class="submit-btn" onclick="submitOrder()">ยืนยันคำสั่งซื้อ ฿<span id="final-btn">0</span></button>
@@ -1650,6 +1650,14 @@ function getTotalPrice(){
   return total||parseInt(document.getElementById('p-grand').textContent)||0;
 }
 
+function updateOrderTotal(){
+  const sub=getTotalPrice();
+  const ship=parseInt(document.getElementById('o-ship')?.value||0);
+  const grand=sub+ship;
+  document.getElementById('final-btn').textContent=grand;
+  document.getElementById('cs-total').textContent=grand;
+  return grand;
+}
 function openOrderModal(){
   // ตรวจว่าทุก model ประเมินราคาแล้วหรือยัง
   const notSliced=models.filter(m=>!m.sliceResult);
@@ -1661,18 +1669,12 @@ function openOrderModal(){
   document.getElementById('order-modal-body').style.display='block';
   document.getElementById('order-success').style.display='none';
   renderAddrs();
-  const total=getTotalPrice();
-  document.getElementById('cs-total').textContent=total;
-  document.getElementById('final-btn').textContent=total;
+  updateOrderTotal();
   const summaryEl=document.getElementById('cs-mat');
   if(summaryEl){
-    if(models.length>1){
-      summaryEl.textContent=`${models.length} ชิ้น / ${S.matName}`;
-    } else {
-      summaryEl.textContent=`${S.matName} / ${S.color}`;
-    }
+    if(models.length>1) summaryEl.textContent=`${models.length} ชิ้น / ${S.matName}`;
+    else summaryEl.textContent=`${S.matName} / ${S.color}`;
   }
-  // แสดง qty รวมทุก model
   const totalQty=models.reduce((s,m)=>s+m.qty,0)||S.qty;
   const qtyEl=document.getElementById('cs-qty');
   if(qtyEl) qtyEl.textContent=totalQty;
@@ -1683,7 +1685,7 @@ async function submitOrder(){
   const n=document.getElementById('o-name').value.trim(),p=document.getElementById('o-phone').value.trim();
   const addr=selectedAddrIdx>=0?addresses[selectedAddrIdx]?.addr:document.getElementById('o-addr')?.value.trim()||'';
   if(!n||!p||!addr){alert('กรุณากรอกชื่อ เบอร์โทร และที่อยู่จัดส่ง');return;}
-  const grand=getTotalPrice();
+  const grand=updateOrderTotal();
   const note=document.getElementById('tech-note')?.value||'';
   const fileList=models.length>1?models.map(m=>m.name).join(', '):(currentFile?.name||'(ไม่มีไฟล์)');
   const fileUrls=models.map(m=>({name:m.name,url:m.fileUrl||null}));
