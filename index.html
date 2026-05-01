@@ -2395,9 +2395,10 @@ let _switching=false; // flag ป้องกัน triggerReslice ล้าง 
 
 function triggerReslice(){
   if(_switching) return; // กำลัง switch model อยู่ ไม่ต้อง clear
+  // อย่า clear sliceResult ถ้า model ปัจจุบันมีผลอยู่แล้วและ settings ไม่ได้เปลี่ยน
   sliceResult=null;
   const m=models.find(m=>m.id===activeModelId);
-  if(m) m.sliceResult=null;
+  if(m){ m.sliceResult=null; }
   recalc();
   unlockEstimateBtn();
 }
@@ -2533,17 +2534,20 @@ function setActiveModel(id){
   window._origSTLBuffer=buf;
   currentFile=m.file;
   sliceResult=m.sliceResult||null;
-  _switching=true;
+  _switching=true; // set ก่อน loadModel เสมอ
   document.getElementById('viewer-loading').style.display='flex';
   loadModel(buf,m.name);
+  const savedSlice=m.sliceResult||null;
   setTimeout(()=>{
+    sliceResult=savedSlice; // restore จาก saved ไม่ใช่ global ที่อาจถูก clear
+    const mRef=models.find(x=>x.id===id);
+    if(mRef) mRef.sliceResult=savedSlice;
     _switching=false;
-    m.size=`${S.x.toFixed(1)} × ${S.y.toFixed(1)} × ${S.z.toFixed(1)} mm`;
-    sliceResult=m.sliceResult||null;
+    if(mRef) mRef.size=`${S.x.toFixed(1)} × ${S.y.toFixed(1)} × ${S.z.toFixed(1)} mm`;
     renderModelsList();
     recalc();
     updateEstimateBtn();
-  },700);
+  },800);
   renderModelsList();
 }
 
