@@ -1701,7 +1701,10 @@ async function submitOrder(){
     price:calcModelPrice(m)||0,
     size:m.size||'—',
   }));
-  const orderData={orderId:'ORD-'+Date.now(),files:fileList,fileUrls,perFileDetails,tech:S.tech==='fdm'?'FDM':'SLA',material:S.matName,color:S.color,size:S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0),qty:totalQty,price:grand,infill:S.infill,layer:S.layerVal+'mm',note,coupon:activeCoupon?.code||null,status:'pending',name:n,phone:p,addr};
+  const shipEl=document.getElementById('o-ship');
+  const ship=parseInt(shipEl?.value||0);
+  const shippingMethod=shipEl?.options[shipEl?.selectedIndex]?.text||'รับเอง';
+  const orderData={orderId:'ORD-'+Date.now(),files:fileList,fileUrls,perFileDetails,tech:S.tech==='fdm'?'FDM':'SLA',material:S.matName,color:S.color,size:S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0),qty:totalQty,price:grand,shipping:ship,shippingMethod,infill:S.infill,layer:S.layerVal+'mm',note,coupon:activeCoupon?.code||null,status:'pending',name:n,phone:p,addr};
   try{ await apiCall('POST','/orders',orderData); }catch(e){ console.warn('save order:',e.message); }
   orders.unshift({id:orderData.orderId,date:new Date().toLocaleDateString('th-TH'),...orderData,statusIdx:0});
   const myKey='p3d_orders_'+(currentUser?.id||'guest');
@@ -1998,6 +2001,7 @@ function renderAdminOrders(){
                 <div>เบอร์: <span style="color:var(--text)">${o.phone||'—'}</span></div>
                 <div>ที่อยู่: <span style="color:var(--text)">${o.addr||'—'}</span></div>
                 <div style="margin-top:8px">วันที่สั่ง: <span style="color:var(--text)">${o.date}</span></div>
+                <div>วิธีส่ง: <span style="color:var(--text)">${o.shippingMethod||'—'}</span>${o.shipping>0?` <span style="color:var(--orange)">(+฿${o.shipping})</span>`:' <span style="color:var(--green)">(ฟรี)</span>'}</div>
                 <div>ราคารวม: <span style="color:var(--orange);font-weight:700;font-size:15px">฿${o.price}</span></div>
               </div>
               ${o.slipUrl?`
