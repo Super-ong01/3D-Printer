@@ -1072,7 +1072,7 @@ body.in-app{overflow:hidden}
           </div>
         </div>
       </div>
-      <div class="admin-section" id="adm-orders"><div class="admin-section-title">จัดการออเดอร์</div><div id="adm-orders-table"></div></div>
+      <div class="admin-section" id="adm-orders"><div class="admin-section-title" style="display:flex;align-items:center;justify-content:space-between">จัดการออเดอร์<button onclick="debugFetchOrders()" style="font-size:11px;padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:var(--mono)">🔍 ดู raw API</button></div><div id="adm-orders-table"></div></div>
       <div class="admin-section" id="adm-coupons">
         <div class="admin-section-title">จัดการ Coupon</div>
         <div class="card" style="margin-bottom:1rem"><div class="card-header">เพิ่ม Coupon</div><div style="padding:1.25rem"><div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end"><div class="fg" style="margin:0"><label>รหัส</label><input type="text" id="new-coupon-code" placeholder="SAVE20" style="text-transform:uppercase"></div><div class="fg" style="margin:0"><label>ส่วนลด</label><input type="number" id="new-coupon-val" placeholder="20"></div><div class="fg" style="margin:0"><label>ประเภท</label><select id="new-coupon-type"><option value="percent">%</option><option value="fixed">฿</option></select></div><button class="btn btn-primary" onclick="addCoupon()">เพิ่ม</button></div></div></div>
@@ -1369,6 +1369,16 @@ function showAdmin(){
   try{ orders=JSON.parse(localStorage.getItem('p3d_orders')||'[]'); }catch(_){}
   try{ quotes=JSON.parse(localStorage.getItem('p3d_quotes')||'[]'); }catch(_){}
   showPage('pg-admin');renderAdminDashboard();renderAdminOrders();renderCouponList();renderMaterialToggles();renderPriceInputs();document.getElementById('user-menu').classList.remove('on');
+}
+async function debugFetchOrders(){
+  const el=document.getElementById('adm-orders-table');
+  el.innerHTML='<div style="padding:12px;font-family:var(--mono);font-size:11px;color:var(--muted)">กำลัง fetch /orders ...</div>';
+  try{
+    const data=await apiCall('GET','/orders');
+    el.innerHTML=`<div style="padding:12px;background:var(--surface);border-radius:8px;font-family:var(--mono);font-size:11px;color:var(--green);white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto">✅ response (${Array.isArray(data)?data.length+' items':'not array'}):\n${JSON.stringify(data,null,2).slice(0,3000)}</div>`;
+  }catch(e){
+    el.innerHTML=`<div style="padding:12px;background:var(--surface);border-radius:8px;font-family:var(--mono);font-size:11px;color:var(--red);white-space:pre-wrap">❌ Error: ${e.message}</div>`;
+  }
 }
 
 /* ============ COLOR PICKER ============ */
@@ -1671,11 +1681,21 @@ async function renderOrders(){
   el.innerHTML='<div class="empty-state">กำลังโหลด...</div>';
   try{
     const data=await apiCall('GET','/orders');
+    console.log('[DEBUG /orders raw]', JSON.stringify(data).slice(0,500));
+    if(!Array.isArray(data)){
+      el.innerHTML=`<div class="empty-state" style="color:var(--red)">⚠ API ส่งข้อมูลผิดรูปแบบ: ${JSON.stringify(data).slice(0,200)}</div>`;
+      return;
+    }
     orders=data.map(o=>({...o,id:o.orderId||o._id,file:o.files||o.file,mat:o.material||o.mat,date:o.date||new Date(o.createdAt).toLocaleDateString('th-TH'),statusIdx:Math.max(0,STATUS_STEPS.indexOf(o.status))}));
   }catch(e){
+    console.error('[renderOrders error]', e);
     // API ไม่พร้อม — ใช้ข้อมูลจาก localStorage แทน ห้ามล้างทิ้ง
     const saved=localStorage.getItem('p3d_orders');
     if(saved) try{ orders=JSON.parse(saved); }catch(_){}
+    if(!orders.length){
+      el.innerHTML=`<div class="empty-state" style="color:var(--red)">⚠ โหลดไม่สำเร็จ: ${e.message}</div>`;
+      return;
+    }
   }
   const filtered=orderFilter==='all'?orders:orders.filter(o=>STATUS_STEPS[o.statusIdx]===orderFilter);
   if(!filtered.length){el.innerHTML='<div class="empty-state"><div style="font-size:40px;opacity:.3">📦</div><div>ยังไม่มีคำสั่งซื้อ</div></div>';return;}
@@ -1719,8 +1739,10 @@ function switchAdmin(sec,el){document.querySelectorAll('.admin-section').forEach
 function renderAdminDashboard(){document.getElementById('adm-total-orders').textContent=orders.length;document.getElementById('adm-pending').textContent=orders.filter(o=>o.statusIdx===0).length;document.getElementById('adm-revenue').textContent='฿'+orders.reduce((s,o)=>s+o.price,0).toLocaleString();document.getElementById('adm-coupons-used').textContent=coupons.reduce((s,c)=>s+(c.used||0),0);const el=document.getElementById('adm-recent-orders');if(!orders.length){el.innerHTML='<p style="color:var(--muted);padding:1rem">ยังไม่มีออเดอร์</p>';return;}el.innerHTML=`<table class="hist-table"><thead><tr><th>เลขที่</th><th>วันที่</th><th>ลูกค้า</th><th>ราคา</th><th>สถานะ</th></tr></thead><tbody>${orders.slice(0,5).map(o=>`<tr><td style="font-family:var(--mono);font-size:11px">${o.id}</td><td>${o.date}</td><td>${o.name}</td><td style="color:var(--orange);font-weight:600">฿${o.price}</td><td><span class="badge ${STATUS_STEPS[o.statusIdx]}">${STATUS_LABEL[STATUS_STEPS[o.statusIdx]]}</span></td></tr>`).join('')}</tbody></table>`;}
 function renderAdminOrders(){
   const el=document.getElementById('adm-orders-table');
-  if(!orders.length){el.innerHTML='<div class="empty-state">📦 ยังไม่มีออเดอร์</div>';return;}
-  el.innerHTML=`<table class="hist-table"><thead><tr>
+  // debug: แสดงจำนวน orders ที่มีอยู่
+  const dbg=`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;padding:6px 10px;background:var(--surface);border-radius:6px;font-family:var(--mono)">📊 orders ในหน่วยความจำ: ${orders.length} รายการ | localStorage: ${JSON.parse(localStorage.getItem('p3d_orders')||'[]').length} รายการ</div>`;
+  if(!orders.length){el.innerHTML=dbg+'<div class="empty-state">📦 ยังไม่มีออเดอร์</div>';return;}
+  el.innerHTML=dbg+`<table class="hist-table"><thead><tr>
     <th>เลขที่</th><th>ลูกค้า</th><th>ไฟล์/งาน</th><th>ราคา</th><th>สถานะ</th><th>อัปเดต</th>
   </tr></thead><tbody>${orders.map((o,i)=>`
     <tr style="cursor:pointer" onclick="toggleOrderDetail('od-${i}')">
