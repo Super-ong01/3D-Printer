@@ -2579,9 +2579,15 @@ function removeModel(id){
   delete window._allSTLBuffers[id];
   if(activeModelId===id){
     if(models.length>0){
-      setActiveModel(models[0].id);
-      recalc();
-      updateEstimateBtn();
+      const nextModel=models[0];
+      const savedSlice=nextModel.sliceResult||null; // backup ก่อน setActiveModel จะล้าง
+      setActiveModel(nextModel.id);
+      // restore หลัง setTimeout ของ setActiveModel (800ms)
+      setTimeout(()=>{
+        const mRef=models.find(m=>m.id===nextModel.id);
+        if(mRef&&savedSlice){ mRef.sliceResult=savedSlice; sliceResult=savedSlice; }
+        renderModelsList(); recalc(); updateEstimateBtn();
+      },900);
     } else {
       activeModelId=null;currentFile=null;
       window._origSTLBuffer=null;sliceResult=null;
@@ -2592,7 +2598,6 @@ function removeModel(id){
       recalc();updateEstimateBtn();
     }
   } else {
-    // ลบ model ที่ไม่ได้ active อยู่ — แค่ recalc ราคารวมใหม่
     recalc();
   }
   renderModelsList();
