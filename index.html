@@ -1650,7 +1650,20 @@ async function submitOrder(){
   const fileList=models.length>1?models.map(m=>m.name).join(', '):(currentFile?.name||'(ไม่มีไฟล์)');
   const fileUrls=models.map(m=>({name:m.name,url:m.fileUrl||null}));
   const totalQty=models.reduce((s,m)=>s+m.qty,0)||S.qty;
-  const orderData={orderId:'ORD-'+Date.now(),files:fileList,fileUrls,tech:S.tech==='fdm'?'FDM':'SLA',material:S.matName,color:S.color,size:S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0),qty:totalQty,price:grand,infill:S.infill,layer:S.layerVal+'mm',note,coupon:activeCoupon?.code||null,status:'pending',name:n,phone:p,addr};
+  // เก็บ settings และ price แยกตามแต่ละไฟล์
+  const perFileDetails=models.map(m=>({
+    name:m.name,
+    url:m.fileUrl||null,
+    qty:m.qty,
+    tech:(m.settings?.tech==='fdm'?'FDM':'SLA')||(S.tech==='fdm'?'FDM':'SLA'),
+    material:m.settings?.matName||S.matName,
+    color:m.settings?.color||S.color,
+    infill:m.settings?.infill||S.infill,
+    layer:(m.settings?.layerVal||S.layerVal)+'mm',
+    price:calcModelPrice(m)||0,
+    size:m.size||'—',
+  }));
+  const orderData={orderId:'ORD-'+Date.now(),files:fileList,fileUrls,perFileDetails,tech:S.tech==='fdm'?'FDM':'SLA',material:S.matName,color:S.color,size:S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0),qty:totalQty,price:grand,infill:S.infill,layer:S.layerVal+'mm',note,coupon:activeCoupon?.code||null,status:'pending',name:n,phone:p,addr};
   try{ await apiCall('POST','/orders',orderData); }catch(e){ console.warn('save order:',e.message); }
   orders.unshift({id:orderData.orderId,date:new Date().toLocaleDateString('th-TH'),...orderData,statusIdx:0});
   const myKey='p3d_orders_'+(currentUser?.id||'guest');
@@ -1780,15 +1793,35 @@ function renderAdminOrders(){
               <div style="font-weight:700;margin-bottom:8px;color:var(--orange)">📦 รายละเอียดงาน</div>
               <div style="display:flex;flex-direction:column;gap:4px;color:var(--muted)">
                 <div>ไฟล์: <span style="color:var(--text)">${o.files||o.file||'—'}</span></div>
-                ${(o.fileUrls||[]).filter(f=>f&&f.url).map(f=>`
-                  <div style="margin-top:4px">
-                    <a href="${f.url}" target="_blank" download="${f.name}"
-                      style="display:inline-flex;align-items:center;gap:6px;background:var(--orange);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">
-                      ⬇ ${f.name}
-                    </a>
-                  </div>
-                `).join('')}
-                ${!(o.fileUrls||[]).filter(f=>f&&f.url).length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">⚠ ไม่มีลิงก์ดาวน์โหลด (order เก่า)</div>`:''}
+                ${(o.perFileDetails&&o.perFileDetails.length>1)?`
+                  <div style="margin-top:8px;font-weight:600;color:var(--text)">รายละเอียดแต่ละไฟล์:</div>
+                  ${o.perFileDetails.map(f=>`
+                    <div style="margin-top:6px;padding:8px;background:var(--surface);border-radius:6px;border:1px solid var(--border)">
+                      <div style="font-weight:600;color:var(--orange);margin-bottom:4px">📄 ${f.name}</div>
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;font-size:12px">
+                        <div>เทค: <span style="color:var(--text)">${f.tech}</span></div>
+                        <div>จำนวน: <span style="color:var(--text)">${f.qty} ชิ้น</span></div>
+                        <div>วัสดุ: <span style="color:var(--text)">${f.material}</span></div>
+                        <div>สี: <span style="color:var(--text)">${f.color}</span></div>
+                        <div>Infill: <span style="color:var(--text)">${f.infill}%</span></div>
+                        <div>Layer: <span style="color:var(--text)">${f.layer}</span></div>
+                        <div>ขนาด: <span style="color:var(--text)">${f.size}</span></div>
+                        <div>ราคา: <span style="color:var(--orange);font-weight:600">฿${f.price}</span></div>
+                      </div>
+                      ${f.url?`<a href="${f.url}" target="_blank" download="${f.name}" style="display:inline-flex;align-items:center;gap:6px;background:var(--orange);color:#fff;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;text-decoration:none;margin-top:6px">⬇ ดาวน์โหลด</a>`:'<div style="font-size:11px;color:var(--muted);margin-top:4px">⚠ ไม่มีลิงก์ดาวน์โหลด</div>'}
+                    </div>
+                  `).join('')}
+                `:`
+                  ${(o.fileUrls||[]).filter(f=>f&&f.url).map(f=>`
+                    <div style="margin-top:4px">
+                      <a href="${f.url}" target="_blank" download="${f.name}"
+                        style="display:inline-flex;align-items:center;gap:6px;background:var(--orange);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">
+                        ⬇ ${f.name}
+                      </a>
+                    </div>
+                  `).join('')}
+                  ${!(o.fileUrls||[]).filter(f=>f&&f.url).length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">⚠ ไม่มีลิงก์ดาวน์โหลด (order เก่า)</div>`:''}
+                `}
                 <div>เทคโนโลยี: <span style="color:var(--text)">${o.tech||'—'}</span></div>
                 <div>วัสดุ/สี: <span style="color:var(--text)">${o.material||o.mat||'—'} / ${o.color||'—'}</span></div>
                 <div>ขนาด: <span style="color:var(--text)">${o.size||'—'} mm</span></div>
@@ -2198,7 +2231,9 @@ function addModels(files){
   if(!validFiles.length) return;
   validFiles.forEach(f=>{
     const id=genId();
-    const m={id,file:f,name:f.name,size:'—',qty:1,active:false,nonManifold:false,sliceResult:null,fileUrl:null,uploading:true};
+    const m={id,file:f,name:f.name,size:'—',qty:1,active:false,nonManifold:false,sliceResult:null,fileUrl:null,uploading:true,
+      // per-model settings — copy จาก global S ตอนสร้าง
+      settings:{tech:S.tech,mat:S.mat,matName:S.matName,color:S.color,infill:S.infill,layerVal:S.layerVal,ql:S.ql,support:S.support}};
     models.push(m);
     const r=new FileReader();
     r.onload=ev=>{
@@ -2250,11 +2285,28 @@ async function uploadFileToCloud(m){
 function setActiveModel(id){
   if(isSlicing) return;
   const prev=models.find(m=>m.id===activeModelId);
-  if(prev && sliceResult) prev.sliceResult=sliceResult;
+  if(prev){
+    if(sliceResult) prev.sliceResult=sliceResult;
+    // บันทึก settings ปัจจุบันลงใน model เดิม
+    prev.settings={tech:S.tech,mat:S.mat,matName:S.matName,color:S.color,infill:S.infill,layerVal:S.layerVal,ql:S.ql,support:S.support};
+  }
   activeModelId=id;
   models.forEach(m=>m.active=m.id===id);
   const m=models.find(m=>m.id===id);
   if(!m) return;
+  // restore settings ของ model ที่เลือก
+  if(m.settings){
+    S.tech=m.settings.tech; S.mat=m.settings.mat; S.matName=m.settings.matName;
+    S.color=m.settings.color; S.infill=m.settings.infill;
+    S.layerVal=m.settings.layerVal; S.ql=m.settings.ql; S.support=m.settings.support;
+    // sync UI
+    selTech(S.tech, document.getElementById('tech-'+S.tech));
+    buildMaterialGrid(); buildColorRow();
+    document.querySelectorAll('.infill-card').forEach(c=>c.classList.toggle('on',parseInt(c.onclick?.toString().match(/\d+/)?.[0]||0)===S.infill));
+    document.querySelectorAll('.layer-card').forEach(c=>c.classList.toggle('on',parseFloat(c.onclick?.toString().match(/[\d.]+/)?.[0]||0)===S.layerVal));
+    S.qty=m.qty;
+    const qn=document.getElementById('qty-n'); if(qn) qn.textContent=S.qty;
+  }
   const buf=window._allSTLBuffers[id];
   if(!buf) return;
   window._origSTLBuffer=buf;
@@ -2329,7 +2381,8 @@ function changeQty(id,delta){
 function calcModelPrice(m){
   if(!m||!m.sliceResult) return null;
   const tRate=adminSettings.timeRate||40;
-  const perPiece=Math.round(m.sliceResult.weight_g*S.mat+m.sliceResult.print_time_hrs*tRate);
+  const matRate=(m.settings?.mat)||S.mat; // ใช้ settings ของ model นี้
+  const perPiece=Math.round(m.sliceResult.weight_g*matRate+m.sliceResult.print_time_hrs*tRate);
   return perPiece*m.qty;
 }
 
