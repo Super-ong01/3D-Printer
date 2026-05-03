@@ -2643,17 +2643,22 @@ function changeQty(id,delta){
 function calcModelPrice(m){
   if(!m||!m.sliceResult) return null;
   const tRate=adminSettings.timeRate||40;
-  const matRate=(m.settings?.mat)||S.mat; // ใช้ settings ของ model นี้
+  // ถ้าเป็น active model ใช้ S.mat ปัจจุบัน ถ้าไม่ใช่ใช้ settings ที่บันทึกไว้
+  const matRate=(m.id===activeModelId)?S.mat:(m.settings?.mat||S.mat);
   const perPiece=Math.round(m.sliceResult.weight_g*matRate+m.sliceResult.print_time_hrs*tRate);
-  return perPiece*m.qty;
+  return perPiece*(m.qty||1);
 }
 
 function recalcTotal(){
   let total=0,any=false,allDone=true;
+  const tRate=adminSettings.timeRate||40;
   models.forEach(m=>{
-    const p=calcModelPrice(m);
-    if(p!==null){total+=p;any=true;}
-    else allDone=false;
+    if(!m.sliceResult){allDone=false;return;}
+    // ใช้ settings ของแต่ละ model คำนวณ ถ้าไม่มีใช้ global S
+    const matRate=(m.settings?.mat)||S.mat;
+    const perPiece=Math.round(m.sliceResult.weight_g*matRate+m.sliceResult.print_time_hrs*tRate);
+    total+=perPiece*(m.qty||1);
+    any=true;
   });
   const bb=document.getElementById('bb-price');
   if(any){
