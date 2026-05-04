@@ -1605,7 +1605,7 @@ function renderModelsList(){
       <div class="mi-size">${m.sizeStr}</div>
       <div class="mi-tags">
         <span class="mi-tag ${S.tech}">${S.tech.toUpperCase()}</span>
-        <span class="mi-tag price">${sliceResult?'฿'+Math.round(sliceResult.weight_g*S.mat+(sliceResult.print_time_hrs*(adminSettings.timeRate||20))):'฿—'} THB/pc</span>
+        <span class="mi-tag price">${sliceResult?'฿'+Math.round(sliceResult.weight_g*S.mat+(sliceResult.print_time_hrs*(adminSettings.timeRate||40))):'฿—'} THB/pc</span>
       </div>
     </div>`).join('');
 }
@@ -1614,7 +1614,7 @@ function removeModel(i){modelItems.splice(i,1);if(!modelItems.length){document.g
 /* ============ PRICING ============ */
 let sliceResult=null;
 function recalc(){
-  const tRate=adminSettings.timeRate||20;
+  const tRate=adminSettings.timeRate||40;
   let g,hrs;
   if(sliceResult){g=sliceResult.weight_g;hrs=sliceResult.print_time_hrs;}
   else{const vol=(S.x*S.y*S.z)/1000;const fill=0.15+(S.infill/100)*0.55;g=vol*fill*DENSITY*1.1*(S.tech==='sla'?0.6:1);hrs=g*0.1*S.ql*(S.tech==='sla'?0.5:1);}
@@ -2120,7 +2120,7 @@ async function advanceAdminOrder(mongoId, currentIdx, btn){
     alert('อัปเดตไม่สำเร็จ: '+e.message);
   }
 }
-function renderPriceInputs(){document.getElementById('fdm-price-inputs').innerHTML=Object.entries(adminSettings.fdmMats).map(([n,m])=>`<div class="price-input-row"><div class="pir-label">${n}</div><div class="pir-input"><input type="number" value="${m.rate}" min="0.5" step="0.1" onchange="adminSettings.fdmMats['${n}'].rate=+this.value;saveAdminSettings()"><span class="pir-unit">฿/g</span></div></div>`).join('');document.getElementById('sla-price-inputs').innerHTML=Object.entries(adminSettings.slaMats).map(([n,m])=>`<div class="price-input-row"><div class="pir-label">${n}</div><div class="pir-input"><input type="number" value="${m.rate}" min="1" step="0.1" onchange="adminSettings.slaMats['${n}'].rate=+this.value;saveAdminSettings()"><span class="pir-unit">฿/g</span></div></div>`).join('');document.getElementById('adm-time-rate').value=adminSettings.timeRate||20;}
+function renderPriceInputs(){document.getElementById('fdm-price-inputs').innerHTML=Object.entries(adminSettings.fdmMats).map(([n,m])=>`<div class="price-input-row"><div class="pir-label">${n}</div><div class="pir-input"><input type="number" value="${m.rate}" min="0.5" step="0.1" onchange="adminSettings.fdmMats['${n}'].rate=+this.value;saveAdminSettings()"><span class="pir-unit">฿/g</span></div></div>`).join('');document.getElementById('sla-price-inputs').innerHTML=Object.entries(adminSettings.slaMats).map(([n,m])=>`<div class="price-input-row"><div class="pir-label">${n}</div><div class="pir-input"><input type="number" value="${m.rate}" min="1" step="0.1" onchange="adminSettings.slaMats['${n}'].rate=+this.value;saveAdminSettings()"><span class="pir-unit">฿/g</span></div></div>`).join('');document.getElementById('adm-time-rate').value=adminSettings.timeRate||40;}
 function renderMaterialToggles(){
   document.getElementById('t-fdm').className='toggle'+(adminSettings.fdmEnabled?' on':'');
   document.getElementById('t-sla').className='toggle'+(adminSettings.slaEnabled?' on':'');
