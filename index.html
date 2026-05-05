@@ -1541,9 +1541,16 @@ function validate(){const ov=['x','y','z'].filter(a=>S[a]>MAX);['x','y','z'].for
 function buildMaterialGrid(){
   const mats=adminSettings[S.tech==='fdm'?'fdmMats':'slaMats'];
   const g=document.getElementById('mat-grid');
-  g.innerHTML=Object.entries(mats).map(([name,m],i)=>`<div class="mat-card${!m.on?' disabled':''}${i===0?' on':''}" onclick="selMat(this,${m.rate},'${name}')"><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div>${!m.on?'<span class="out-badge">หมด</span>':''}</div>`).join('');
-  const firstOn=Object.entries(mats).find(([,m])=>m.on);
-  if(firstOn)selMatData(firstOn[1].rate,firstOn[0]);
+  g.innerHTML=Object.entries(mats).map(([name,m],i)=>{
+    const isOn=m.on!==false;
+    const isFirst=i===0;
+    const cls=`mat-card${!isOn?' disabled':''}${isFirst&&isOn?' on':''}`;
+    const onclick=isOn?`onclick="selMat(this,${m.rate},'${name}')"`:''
+    return `<div class="${cls}" ${onclick} style="${!isOn?'cursor:not-allowed;opacity:.45':''}"><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div>${!isOn?'<span class="out-badge">ปิดรับ</span>':''}</div>`;
+  }).join('');
+  const firstOn=Object.entries(mats).find(([,m])=>m.on!==false);
+  if(firstOn) selMatData(firstOn[1].rate,firstOn[0]);
+  else { S.mat=0; S.matName=''; }
 }
 function buildColorRow(){
   const colors=adminSettings.colors;
