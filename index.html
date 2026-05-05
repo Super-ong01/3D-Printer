@@ -1546,7 +1546,7 @@ function buildMaterialGrid(){
     const isFirst=i===0;
     const cls=`mat-card${!isOn?' disabled':''}${isFirst&&isOn?' on':''}`;
     const onclick=isOn?`onclick="selMat(this,${m.rate},'${name}')"`:''
-    return `<div class="${cls}" ${onclick} style="${!isOn?'cursor:not-allowed;opacity:.45':''}"><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div>${!isOn?'<span class="out-badge">ปิดรับ</span>':''}</div>`;
+    return `<div class="${cls}" ${onclick}><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div>${!isOn?'<span class="out-badge">ปิดรับ</span>':''}</div>`;
   }).join('');
   const firstOn=Object.entries(mats).find(([,m])=>m.on!==false);
   if(firstOn) selMatData(firstOn[1].rate,firstOn[0]);
