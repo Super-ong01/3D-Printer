@@ -2551,26 +2551,29 @@ function setActiveModel(id){
   if(!m) return;
   // restore sliceResult global ให้ตรงกับ model ที่เลือก
   sliceResult=m.sliceResult||null;
-  // restore settings ของ model ที่เลือก
+  const buf=window._allSTLBuffers[id];
+  if(!buf) return;
+  window._origSTLBuffer=buf;
+  currentFile=m.file;
+  const savedSlice=m.sliceResult||null; // backup ก่อนทุกอย่าง
+  sliceResult=savedSlice;
+  _switching=true; // set ก่อน restore settings เพื่อกัน triggerReslice
+  // restore settings ของ model ที่เลือก (หลัง _switching=true)
   if(m.settings){
     S.tech=m.settings.tech; S.mat=m.settings.mat; S.matName=m.settings.matName;
     S.color=m.settings.color; S.infill=m.settings.infill;
     S.layerVal=m.settings.layerVal; S.ql=m.settings.ql; S.support=m.settings.support;
-    // sync UI
     selTech(S.tech, document.getElementById('tech-'+S.tech));
     buildMaterialGrid(); buildColorRow();
     document.querySelectorAll('.infill-card').forEach(c=>c.classList.toggle('on',parseInt(c.onclick?.toString().match(/\d+/)?.[0]||0)===S.infill));
     document.querySelectorAll('.layer-card').forEach(c=>c.classList.toggle('on',parseFloat(c.onclick?.toString().match(/[\d.]+/)?.[0]||0)===S.layerVal));
     S.qty=m.qty;
     const qn=document.getElementById('qty-n'); if(qn) qn.textContent=S.qty;
+    // restore sliceResult หลัง buildMaterialGrid อาจล้างทิ้ง
+    sliceResult=savedSlice;
+    const mRef2=models.find(x=>x.id===id);
+    if(mRef2) mRef2.sliceResult=savedSlice;
   }
-  const buf=window._allSTLBuffers[id];
-  if(!buf) return;
-  window._origSTLBuffer=buf;
-  currentFile=m.file;
-  const savedSlice=m.sliceResult||null; // backup ก่อน loadModel จะล้าง
-  sliceResult=savedSlice;
-  _switching=true; // ต้อง set ก่อน loadModel เพื่อกัน triggerReslice
   document.getElementById('viewer-loading').style.display='flex';
   loadModel(buf,m.name);
   setTimeout(()=>{
