@@ -1318,23 +1318,29 @@ let orderFilter='all';
 let selectedAddrIdx=-1;
 let modelItems=[];
 
-if(!adminSettings.fdmEnabled)adminSettings.fdmEnabled=true;
-if(!adminSettings.slaEnabled)adminSettings.slaEnabled=true;
-if(!adminSettings.timeRate||adminSettings.timeRate<30)adminSettings.timeRate=40;
-if(!adminSettings.fdmMats)adminSettings.fdmMats={PLA:{on:true,rate:1.50},PETG:{on:true,rate:1.80},ASA:{on:true,rate:2.20},TPU:{on:true,rate:2.50}};
-if(!adminSettings.slaMats)adminSettings.slaMats={Standard:{on:true,rate:3.50},'H-Clear':{on:true,rate:4.50},'ABS-Like':{on:true,rate:5.00},Tough:{on:true,rate:6.00}};
-if(!adminSettings.colors)adminSettings.colors={'#E8E8E8':{name:'ขาว',on:true},'#1A1A1A':{name:'ดำ',on:true},'#E8530A':{name:'ส้ม',on:true},'#2563EB':{name:'น้ำเงิน',on:true},'#16A34A':{name:'เขียว',on:true},'#DC2626':{name:'แดง',on:true},'#FBBF24':{name:'เหลือง',on:true},'#9333EA':{name:'ม่วง',on:true}};
-// colorMatrix: {matName: {colorHex: true/false}} — per-material color availability
-if(!adminSettings.colorMatrix){
-  adminSettings.colorMatrix={};
-  const allMats=[...Object.keys(adminSettings.fdmMats),...Object.keys(adminSettings.slaMats)];
-  allMats.forEach(mat=>{
-    adminSettings.colorMatrix[mat]={};
-    Object.keys(adminSettings.colors).forEach(hex=>{
-      adminSettings.colorMatrix[mat][hex]=true; // default: ทุก material มีทุกสี
-    });
-  });
+function applyAdminSettingsDefaults(s){
+  if(s.fdmEnabled===undefined) s.fdmEnabled=true;
+  if(s.slaEnabled===undefined) s.slaEnabled=true;
+  if(!s.timeRate||s.timeRate<30) s.timeRate=40;
+  if(!s.fdmMats) s.fdmMats={PLA:{on:true,rate:1.50},PETG:{on:true,rate:1.80},ASA:{on:true,rate:2.20},TPU:{on:true,rate:2.50}};
+  if(!s.slaMats) s.slaMats={Standard:{on:true,rate:3.50},'H-Clear':{on:true,rate:4.50},'ABS-Like':{on:true,rate:5.00},Tough:{on:true,rate:6.00}};
+  if(!s.colors) s.colors={'#E8E8E8':{name:'ขาว',on:true},'#1A1A1A':{name:'ดำ',on:true},'#E8530A':{name:'ส้ม',on:true},'#2563EB':{name:'น้ำเงิน',on:true},'#16A34A':{name:'เขียว',on:true},'#DC2626':{name:'แดง',on:true},'#FBBF24':{name:'เหลือง',on:true},'#9333EA':{name:'ม่วง',on:true}};
+  if(!s.colorMatrix){
+    s.colorMatrix={};
+    const allMats=[...Object.keys(s.fdmMats),...Object.keys(s.slaMats)];
+    allMats.forEach(mat=>{ s.colorMatrix[mat]={}; Object.keys(s.colors).forEach(hex=>{ s.colorMatrix[mat][hex]=true; }); });
+  }
+  return s;
 }
+applyAdminSettingsDefaults(adminSettings);
+// โหลด adminSettings จาก MongoDB ทุกครั้ง เพื่อให้ user เห็น settings จริงจาก admin
+fetch(API+'/settings/admin').then(r=>r.json()).then(data=>{
+  if(data&&Object.keys(data).length>0){
+    adminSettings=applyAdminSettingsDefaults(data);
+    localStorage.setItem('p3d_admin',JSON.stringify(adminSettings));
+    buildMaterialGrid();buildColorRow();recalc();
+  }
+}).catch(()=>{});
 
 /* ============ AUTH ============ */
 function gotoLogin(){showPage('pg-login');}
@@ -2260,7 +2266,13 @@ function deleteColor(hex){
 }
 
 function toggleSetting(key){if(key==='fdm')adminSettings.fdmEnabled=!adminSettings.fdmEnabled;else adminSettings.slaEnabled=!adminSettings.slaEnabled;saveAdminSettings();renderMaterialToggles();}
-function saveAdminSettings(){adminSettings.timeRate=parseInt(document.getElementById('adm-time-rate')?.value||20);localStorage.setItem('p3d_admin',JSON.stringify(adminSettings));buildMaterialGrid();buildColorRow();recalc();}
+function saveAdminSettings(){
+  adminSettings.timeRate=parseInt(document.getElementById('adm-time-rate')?.value||40);
+  localStorage.setItem('p3d_admin',JSON.stringify(adminSettings));
+  // save ผ่าน API เพื่อให้ user ทุกคนเห็น settings เดียวกัน
+  apiCall('PUT','/settings/admin',adminSettings).catch(e=>console.warn('save settings:',e.message));
+  buildMaterialGrid();buildColorRow();recalc();
+}
 function addCoupon(){const code=document.getElementById('new-coupon-code').value.trim().toUpperCase();const val=parseFloat(document.getElementById('new-coupon-val').value);const type=document.getElementById('new-coupon-type').value;if(!code||!val){alert('กรุณากรอกรหัสและส่วนลด');return;}if(coupons.find(c=>c.code===code)){alert('รหัสนี้มีอยู่แล้ว');return;}coupons.push({code,type,val,used:0});localStorage.setItem('p3d_coupons',JSON.stringify(coupons));document.getElementById('new-coupon-code').value='';document.getElementById('new-coupon-val').value='';renderCouponList();}
 function deleteCoupon(i){coupons.splice(i,1);localStorage.setItem('p3d_coupons',JSON.stringify(coupons));renderCouponList();}
 function renderCouponList(){const el=document.getElementById('coupon-list');if(!coupons.length){el.innerHTML='<div style="padding:1rem;text-align:center;color:var(--muted)">ยังไม่มี Coupon</div>';return;}el.innerHTML=`<table class="hist-table"><thead><tr><th>รหัส</th><th>ส่วนลด</th><th>ใช้ไปแล้ว</th><th></th></tr></thead><tbody>${coupons.map((c,i)=>`<tr><td style="font-family:var(--mono);font-weight:700">${c.code}</td><td>${c.type==='percent'?c.val+'%':'฿'+c.val}</td><td>${c.used||0} ครั้ง</td><td><button onclick="deleteCoupon(${i})" class="btn btn-danger btn-sm">ลบ</button></td></tr>`).join('')}</tbody></table>`;}
