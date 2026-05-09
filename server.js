@@ -204,7 +204,34 @@ app.get('/quotes', auth, async (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ===== ADMIN =====
+const settingsSchema = new mongoose.Schema({
+  key:   { type: String, unique: true },
+  value: mongoose.Schema.Types.Mixed,
+  updatedAt: { type: Date, default: Date.now },
+});
+const Settings = mongoose.model('Settings', settingsSchema);
+
+// GET /settings/admin — โหลด admin settings (ทุกคนโหลดได้ ไม่ต้อง login)
+app.get('/settings/admin', async (req, res) => {
+  try {
+    const doc = await Settings.findOne({ key: 'adminSettings' });
+    res.json(doc ? doc.value : {});
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /settings/admin — บันทึก admin settings (admin เท่านั้น)
+app.put('/settings/admin', auth, adminOnly, async (req, res) => {
+  try {
+    const doc = await Settings.findOneAndUpdate(
+      { key: 'adminSettings' },
+      { value: req.body, updatedAt: new Date() },
+      { upsert: true, new: true }
+    );
+    res.json(doc.value);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+
 app.get('/admin/orders', auth, adminOnly, async (req, res) => {
   try { res.json(await Order.find().sort({ createdAt: -1 }).populate('userId','name email phone')); }
   catch (e) { res.status(500).json({ error: e.message }); }
