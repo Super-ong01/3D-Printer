@@ -1587,7 +1587,15 @@ function selTech(t,el){
   buildMaterialGrid();recalc();
 }
 function selMat(el,r,name){document.querySelectorAll('.mat-card').forEach(c=>c.classList.remove('on'));el.classList.add('on');selMatData(r,name);}
-function selMatData(r,name){S.mat=r;S.matName=name;document.getElementById('mat-tag').textContent='฿'+r.toFixed(2)+'/g';document.getElementById('p-rate').textContent='฿'+r.toFixed(2);buildColorRow();triggerReslice();recalc();}
+function selMatData(r,name){
+  S.mat=r;S.matName=name;
+  document.getElementById('mat-tag').textContent='฿'+r.toFixed(2)+'/g';
+  document.getElementById('p-rate').textContent='฿'+r.toFixed(2);
+  buildColorRow();triggerReslice();recalc();
+  // บันทึกลง active model
+  const m=models.find(m=>m.id===activeModelId);
+  if(m){ if(!m.settings) m.settings={}; m.settings.mat=r; m.settings.matName=name; }
+}
 function selClr(el){
   if(el.classList.contains('disabled'))return;
   document.querySelectorAll('.clr-sw').forEach(s=>s.classList.remove('on'));el.classList.add('on');
@@ -1595,6 +1603,10 @@ function selClr(el){
   document.getElementById('clr-preview').style.background=el.dataset.hex;
   document.getElementById('clr-name').textContent=el.dataset.name;
   document.getElementById('color-picker-popup').classList.remove('on');
+  // บันทึกสีลง active model ทันที
+  const m=models.find(m=>m.id===activeModelId);
+  if(m){ if(!m.settings) m.settings={}; m.settings.color=S.color; }
+  renderModelsList();
 }
 function selLayer(el,val){document.querySelectorAll('.layer-card').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.ql=val===0.08?2.0:val===0.16?1.0:0.65;S.layerVal=val;triggerReslice();recalc();}
 function selInfill(el,pct){document.querySelectorAll('.infill-card').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.infill=pct;triggerReslice();recalc();}
