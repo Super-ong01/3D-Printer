@@ -947,11 +947,9 @@ body.in-app{overflow:hidden}
     <div class="modal-body" id="order-modal-body">
       <div class="cs">
         <div class="cs-title">สรุปรายการ</div>
-        <div class="cs-row"><span>Technology</span><span class="cs-v" id="cs-tech">FDM</span></div>
-        <div class="cs-row"><span>วัสดุ / สี</span><span class="cs-v" id="cs-mat">PLA / ขาว</span></div>
-        <div class="cs-row"><span>Infill</span><span class="cs-v" id="cs-pat">25%</span></div>
-        <div class="cs-row"><span>ขนาด</span><span class="cs-v" id="cs-dim">—</span></div>
-        <div class="cs-row"><span>จำนวน</span><span class="cs-v" id="cs-qty">1 ชิ้น</span></div>
+        <div id="cs-items-list"></div>
+        <div class="cs-row" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border)"><span style="color:var(--muted)">ราคาสินค้ารวม</span><span class="cs-v" id="cs-subtotal">—</span></div>
+        <div class="cs-row"><span style="color:var(--muted)">ค่าจัดส่ง</span><span class="cs-v" id="cs-ship-display">—</span></div>
         <div class="cs-row discount" id="cs-discount-row" style="display:none"><span>ส่วนลด</span><span class="cs-v" id="cs-discount">-฿0</span></div>
         <div class="cs-row total"><span>รวมทั้งหมด</span><span class="cs-v">฿<span id="cs-total">—</span></span></div>
       </div>
@@ -1706,7 +1704,37 @@ function updateOrderTotal(){
   const ship=parseInt(sel?.value||0);
   const grand=sub+ship;
   document.getElementById('final-btn').textContent=grand;
-  document.getElementById('cs-total').textContent=grand;
+  const csTotalEl=document.getElementById('cs-total');
+  if(csTotalEl) csTotalEl.textContent=grand;
+  // แสดงราคาสินค้ารวมและค่าส่งแยก
+  const subtotalEl=document.getElementById('cs-subtotal');
+  const shipEl2=document.getElementById('cs-ship-display');
+  if(subtotalEl) subtotalEl.textContent='฿'+sub;
+  if(shipEl2) shipEl2.textContent=ship>0?'฿'+ship:'ฟรี';
+  // render รายละเอียดแต่ละชิ้น
+  const listEl=document.getElementById('cs-items-list');
+  if(listEl){
+    const tRate=adminSettings.timeRate||40;
+    listEl.innerHTML=models.map(m=>{
+      const ms=m.settings||{};
+      const matRate=ms.mat||S.mat;
+      const price=m.sliceResult?Math.round(m.sliceResult.weight_g*matRate+m.sliceResult.print_time_hrs*tRate)*m.qty:calcModelPrice(m)||'—';
+      return `<div style="background:var(--surface);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px">
+        <div style="font-weight:700;color:var(--text);margin-bottom:4px;display:flex;justify-content:space-between">
+          <span>📄 ${m.name}</span>
+          <span style="color:var(--orange)">฿${price}</span>
+        </div>
+        <div style="color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:1px 12px">
+          <div>วัสดุ: <span style="color:var(--text)">${ms.matName||S.matName}</span></div>
+          <div>สี: <span style="color:var(--text)">${ms.color||S.color}</span></div>
+          <div>Infill: <span style="color:var(--text)">${ms.infill||S.infill}%</span></div>
+          <div>Layer: <span style="color:var(--text)">${ms.layerVal||S.layerVal}mm</span></div>
+          <div>ขนาด: <span style="color:var(--text)">${m.size||'—'}</span></div>
+          <div>จำนวน: <span style="color:var(--text)">${m.qty} ชิ้น</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
   // แสดง note ตามวิธีจัดส่ง
   const noteEl=document.getElementById('ship-note');
   if(noteEl){
