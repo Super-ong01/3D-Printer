@@ -1632,6 +1632,7 @@ function removeModel(i){modelItems.splice(i,1);if(!modelItems.length){document.g
 /* ============ PRICING ============ */
 let sliceResult=null;
 function recalc(){
+  try{
   const tRate=adminSettings.timeRate||40;
   let g,hrs;
   if(sliceResult){g=sliceResult.weight_g;hrs=sliceResult.print_time_hrs;}
@@ -1668,15 +1669,18 @@ function recalc(){
   document.getElementById('p-trate').textContent=tRate;
   document.getElementById('p-qty').textContent='× '+S.qty;
   document.getElementById('p-dim').textContent=S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0);
-  // modal summary
-  document.getElementById('cs-tech').textContent=S.tech==='fdm'?'FDM':'SLA';
-  document.getElementById('cs-mat').textContent=S.matName+' / '+S.color;
-  document.getElementById('cs-pat').textContent=S.infill+'%';
-  document.getElementById('cs-dim').textContent=S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0)+' mm';
-  document.getElementById('cs-qty').textContent=S.qty+' ชิ้น';
-  document.getElementById('cs-total').textContent=sliceResult?grand:'—';
-  document.getElementById('cs-discount-row').style.display=discountAmt>0?'flex':'none';
-  if(discountAmt>0)document.getElementById('cs-discount').textContent='-฿'+discountAmt;
+  // modal summary — safe check เพราะ element อาจไม่มีใน DOM
+  const _set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  _set('cs-tech',S.tech==='fdm'?'FDM':'SLA');
+  _set('cs-mat',S.matName+' / '+S.color);
+  _set('cs-pat',S.infill+'%');
+  _set('cs-dim',S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0)+' mm');
+  _set('cs-qty',S.qty+' ชิ้น');
+  _set('cs-total',sliceResult?grand:'—');
+  const discRow=document.getElementById('cs-discount-row');
+  if(discRow) discRow.style.display=discountAmt>0?'flex':'none';
+  if(discountAmt>0) _set('cs-discount','-฿'+discountAmt);
+  }catch(e){console.warn('[recalc error]',e);}
   renderModelsList();
 }
 
@@ -1703,7 +1707,8 @@ function updateOrderTotal(){
   const sel=document.getElementById('o-ship');
   const ship=parseInt(sel?.value||0);
   const grand=sub+ship;
-  document.getElementById('final-btn').textContent=grand;
+  const finalBtn=document.getElementById('final-btn');
+  if(finalBtn) finalBtn.textContent=grand;
   const csTotalEl=document.getElementById('cs-total');
   if(csTotalEl) csTotalEl.textContent=grand;
   // แสดงราคาสินค้ารวมและค่าส่งแยก
