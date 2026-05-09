@@ -1564,7 +1564,8 @@ function buildColorRow(){
   const curStillAvailable=curHex&&matColors[curHex]!==false;
 
   // ถ้าสีปัจจุบันไม่มีใน material ใหม่ → reset เป็นสีแรกที่ available
-  if(!curStillAvailable){
+  // ถ้ากำลัง switch model อยู่ ไม่ต้อง reset S.color
+  if(!_switching && !curStillAvailable){
     const firstAvail=Object.entries(colors).find(([h])=>matColors[h]!==false);
     if(firstAvail){
       S.color=firstAvail[1].name;
@@ -2577,6 +2578,18 @@ function setActiveModel(id){
     S.layerVal=m.settings.layerVal; S.ql=m.settings.ql; S.support=m.settings.support;
     selTech(S.tech, document.getElementById('tech-'+S.tech));
     buildMaterialGrid(); buildColorRow();
+    // restore S.color หลัง buildColorRow อาจ reset ทิ้ง
+    S.color=m.settings.color;
+    // sync color UI
+    const colorHex=Object.entries(adminSettings.colors||{}).find(([,c])=>c.name===S.color)?.[0];
+    if(colorHex){
+      applyColor(colorHex);
+      document.getElementById('clr-preview').style.background=colorHex;
+      document.getElementById('clr-name').textContent=S.color;
+      document.querySelectorAll('.clr-sw').forEach(sw=>{
+        sw.classList.toggle('on', sw.dataset.name===S.color);
+      });
+    }
     document.querySelectorAll('.infill-card').forEach(c=>c.classList.toggle('on',parseInt(c.onclick?.toString().match(/\d+/)?.[0]||0)===S.infill));
     document.querySelectorAll('.layer-card').forEach(c=>c.classList.toggle('on',parseFloat(c.onclick?.toString().match(/[\d.]+/)?.[0]||0)===S.layerVal));
     S.qty=m.qty;
