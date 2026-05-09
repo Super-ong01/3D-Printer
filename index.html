@@ -2724,12 +2724,12 @@ function renderModelsList(){
         <div class="mp-info">
           <div class="mp-name" title="${m.name}">${m.name}</div>
           <div class="mp-size">${m.size}</div>
-          <div class="mp-cfg">${S.matName} ${S.color} ${S.infill}% ${S.layerVal}mm</div>
+          <div class="mp-cfg">${(m.settings?.matName||S.matName)} ${(m.settings?.color||S.color)} ${(m.settings?.infill||S.infill)}% ${(m.settings?.layerVal||S.layerVal)}mm</div>
         </div>
         <button class="mp-del" onclick="event.stopPropagation();removeModel('${m.id}')">✕</button>
       </div>
       <div class="mp-tags">
-        <span class="mp-tag mp-tag-${S.tech==='fdm'?'fdm':'sla'}">${S.tech.toUpperCase()}</span>
+        <span class="mp-tag mp-tag-${(m.settings?.tech||S.tech)==='fdm'?'fdm':'sla'}">${(m.settings?.tech||S.tech).toUpperCase()}</span>
         ${m.nonManifold?'<span class="mp-tag mp-tag-warn">⚠ Non-Manifold</span>':''}
         ${m.uploading?'<span class="mp-tag" style="background:rgba(96,165,250,.15);color:#60a5fa">⬆ uploading</span>':''}
         ${m.fileUrl&&!m.uploading?'<span class="mp-tag" style="background:rgba(52,211,153,.15);color:#34d399">☁ saved</span>':''}
