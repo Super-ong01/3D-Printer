@@ -184,8 +184,13 @@ app.delete('/user/addresses/:idx', auth, async (req, res) => {
 
 // ===== ORDERS =====
 app.post('/orders', auth, async (req, res) => {
-  try { const o = await Order.create({ ...req.body, userId: req.user.id }); res.json(o); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    const o = await Order.create({ ...req.body, userId: req.user.id });
+    // แจ้งเตือน admin ผ่าน LINE
+    const msg = `🔔 มี Order ใหม่!\n\n📦 เลขที่: ${o.orderId}\n👤 ลูกค้า: ${o.name}\n📞 โทร: ${o.phone}\n📄 ไฟล์: ${o.files}\n💰 ราคา: ฿${o.price}\n🚚 จัดส่ง: ${o.shippingMethod||'—'}\n\nกรุณายืนยัน order ใน Admin Panel`;
+    sendLineNotification(msg);
+    res.json(o);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/orders', auth, async (req, res) => {
@@ -231,6 +236,39 @@ app.put('/settings/admin', auth, adminOnly, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// ===== LINE MESSAGING API =====
+const LINE_CHANNEL_TOKEN = process.env.LINE_CHANNEL_TOKEN;
+const LINE_ADMIN_USER_ID = process.env.LINE_ADMIN_USER_ID;
+
+async function sendLineNotification(message) {
+  if (!LINE_CHANNEL_TOKEN || !LINE_ADMIN_USER_ID) return;
+  try {
+    const https = require('https');
+    const body = JSON.stringify({
+      to: LINE_ADMIN_USER_ID,
+      messages: [{ type: 'text', text: message }]
+    });
+    await new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: 'api.line.me',
+        path: '/v2/bot/message/push',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${LINE_CHANNEL_TOKEN}`,
+          'Content-Length': Buffer.byteLength(body)
+        }
+      }, res => { res.on('data', () => {}); res.on('end', resolve); });
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
+    console.log('[LINE] Notification sent');
+  } catch (e) {
+    console.error('[LINE] Error:', e.message);
+  }
+}
 
 app.get('/admin/orders', auth, adminOnly, async (req, res) => {
   try { res.json(await Order.find().sort({ createdAt: -1 }).populate('userId','name email phone')); }
