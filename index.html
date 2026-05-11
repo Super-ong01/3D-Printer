@@ -1807,41 +1807,29 @@ async function submitOrder(){
   const fileList=models.length>1?models.map(m=>m.name).join(', '):(currentFile?.name||'(ไม่มีไฟล์)');
   const fileUrls=models.map(m=>({name:m.name,url:m.fileUrl||null}));
   const totalQty=models.reduce((s,m)=>s+m.qty,0)||S.qty;
-  // เก็บ settings และ price แยกตามแต่ละไฟล์
   const perFileDetails=models.map(m=>({
-    name:m.name,
-    url:m.fileUrl||null,
-    qty:m.qty,
+    name:m.name, url:m.fileUrl||null, qty:m.qty,
     tech:(m.settings?.tech==='fdm'?'FDM':'SLA')||(S.tech==='fdm'?'FDM':'SLA'),
-    material:m.settings?.matName||S.matName,
-    color:m.settings?.color||S.color,
-    infill:m.settings?.infill||S.infill,
-    layer:(m.settings?.layerVal||S.layerVal)+'mm',
-    price:calcModelPrice(m)||0,
-    size:m.size||'—',
+    material:m.settings?.matName||S.matName, color:m.settings?.color||S.color,
+    infill:m.settings?.infill||S.infill, layer:(m.settings?.layerVal||S.layerVal)+'mm',
+    price:calcModelPrice(m)||0, size:m.size||'—',
   }));
   const shipEl=document.getElementById('o-ship');
   const ship=parseInt(shipEl?.value||0);
   const shippingMethodText=shipEl?.options[shipEl?.selectedIndex]?.text||'รับเอง';
   const shippingMethod=shippingMethodText.includes('Grab')?'Grab (ชำระปลายทาง)':shippingMethodText;
-  const orderData={orderId:'ORD-'+Date.now(),files:fileList,fileUrls,perFileDetails,tech:S.tech==='fdm'?'FDM':'SLA',material:S.matName,color:S.color,size:S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0),qty:totalQty,price:grand,shipping:ship,shippingMethod,infill:S.infill,layer:S.layerVal+'mm',note,coupon:activeCoupon?.code||null,status:'pending',name:n,phone:p,addr};
-  try{ await apiCall('POST','/orders',orderData); }catch(e){ console.warn('save order:',e.message); }
-  orders.unshift({id:orderData.orderId,date:new Date().toLocaleDateString('th-TH'),...orderData,statusIdx:0});
-  const myKey='p3d_orders_'+(currentUser?.id||'guest');
-  localStorage.setItem(myKey,JSON.stringify(orders));
+  // เก็บ orderData ไว้ใน window เพื่อใช้ตอน submitSlip
+  window._pendingOrderData={orderId:'ORD-'+Date.now(),files:fileList,fileUrls,perFileDetails,
+    tech:S.tech==='fdm'?'FDM':'SLA',material:S.matName,color:S.color,
+    size:S.x.toFixed(0)+'×'+S.y.toFixed(0)+'×'+S.z.toFixed(0),
+    qty:totalQty,price:grand,shipping:ship,shippingMethod,
+    infill:S.infill,layer:S.layerVal+'mm',note,
+    coupon:activeCoupon?.code||null,status:'pending',name:n,phone:p,addr};
+  // แสดงหน้าชำระเงิน (ยังไม่บันทึก order)
   document.getElementById('order-modal-body').style.display='none';
   document.getElementById('order-success').style.display='block';
-  // แสดง QR PromptPay
   document.getElementById('qr-amount').textContent=grand;
   document.getElementById('bank-amount').textContent=grand;
-  window._currentOrderId=orderData.orderId;
-  window._currentOrderMongoId=null;
-  // หา mongo _id จาก orders ที่เพิ่งบันทึก
-  try{
-    const saved=await apiCall('GET','/orders');
-    const found=saved.find(o=>o.orderId===orderData.orderId);
-    if(found) window._currentOrderMongoId=found._id;
-  }catch(_){}
   const paymentMethod=document.getElementById('o-payment')?.value||'promptpay';
   updatePaymentDisplay();
   if(paymentMethod==='promptpay') generatePromptPayQR(grand);
@@ -1938,29 +1926,30 @@ async function submitSlip(){
   const status=document.getElementById('slip-status');
   btn.disabled=true; btn.textContent='กำลังส่ง...';
   try{
+    // 1. อัปโหลดสลิปขึ้น Cloudinary ก่อน
     const fd=new FormData();
     fd.append('file',_slipFile);
-    fd.append('orderId',window._currentOrderId||'');
-    if(window._currentOrderMongoId) fd.append('mongoId',window._currentOrderMongoId);
+    fd.append('orderId',window._pendingOrderData?.orderId||'');
     const token=localStorage.getItem('p3d_token');
-    const res=await fetch(API+'/upload-slip',{method:'POST',headers:token?{Authorization:'Bearer '+token}:{},body:fd});
-    // ตรวจสอบว่า response เป็น JSON จริงๆ ก่อน parse
+    const res=await fetch(API+'/upload-slip-only',{method:'POST',headers:token?{Authorization:'Bearer '+token}:{},body:fd});
     const contentType=res.headers.get('content-type')||'';
     if(!contentType.includes('application/json')){
-      const text=await res.text();
-      throw new Error('Server ยังไม่รองรับ endpoint นี้ — กรุณา deploy server.js ใหม่ก่อน\n\n'+text.slice(0,100));
+      throw new Error('Server ยังไม่รองรับ endpoint นี้ — กรุณา deploy server.js ใหม่ก่อน');
     }
     const data=await res.json();
     if(!res.ok) throw new Error(data.error||'Upload failed');
-    status.innerHTML='<span style="color:var(--green)">✓ ส่งสลิปสำเร็จ! Admin จะยืนยันภายใน 1-2 ชั่วโมง</span>';
+    // 2. บันทึก order พร้อม slipUrl
+    const orderData={...window._pendingOrderData, slipUrl:data.url, slipUploadedAt:new Date().toISOString()};
+    await apiCall('POST','/orders',orderData);
+    orders.unshift({id:orderData.orderId,date:new Date().toLocaleDateString('th-TH'),...orderData,statusIdx:0});
+    const myKey='p3d_orders_'+(currentUser?.id||'guest');
+    localStorage.setItem(myKey,JSON.stringify(orders));
+    status.innerHTML='<span style="color:var(--green)">✓ ส่งสลิปและบันทึก order สำเร็จ! Admin จะยืนยันภายใน 1-2 ชั่วโมง</span>';
     btn.textContent='ส่งแล้ว ✓'; btn.style.background='#22c55e';
+    window._pendingOrderData=null;
   }catch(e){
-    const msg=e.message.includes('deploy')?
-      '⚠ กรุณาอัปเดต server.js แล้ว deploy ใหม่ก่อนใช้ฟีเจอร์นี้':
-      '⚠ '+e.message;
-    status.innerHTML=`<div style="color:var(--red);font-size:12px">${msg}</div>`;
+    status.innerHTML=`<div style="color:var(--red);font-size:12px">⚠ ${e.message}</div>`;
     btn.disabled=false; btn.textContent='ส่งหลักฐานการชำระเงิน'; btn.style.opacity='1';
-    console.error('[submitSlip]',e);
   }
 }
 
