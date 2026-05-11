@@ -269,6 +269,8 @@ body.in-app{overflow:hidden}
 .pr-total-val .thb{font-size:16px;color:var(--muted);margin-right:2px}
 .pr-total-val .pc{font-size:13px;color:var(--muted);font-weight:400}
 .estimate-btn{width:calc(100% - 32px);margin:0 16px 16px;background:var(--orange);color:#fff;padding:12px;border-radius:8px;font-size:15px;font-weight:600;border:none;cursor:pointer;font-family:var(--font)}
+.estimate-btn.done{background:var(--surface)!important;color:#22c55e!important;border:1.5px solid #22c55e!important;cursor:default!important;opacity:1!important}
+.estimate-btn.slicing{background:#444!important;color:#aaa!important;cursor:not-allowed!important;opacity:0.7!important}
 .estimate-btn:hover{opacity:.9}
 
 /* Qty */
@@ -2723,22 +2725,19 @@ function updateEstimateBtn(){
   const btn=document.getElementById('estimate-btn');
   const inner=document.getElementById('estimate-btn-inner');
   if(!btn||!inner) return;
+  btn.classList.remove('done','slicing');
   if(isSlicing){
-    btn.disabled=true;btn.style.opacity='0.7';btn.style.background='#555';
-    btn.style.color='#fff';btn.style.cursor='not-allowed';
-    inner.innerHTML='<div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;border-top-color:#fff"></div> กำลัง slice...';
+    btn.disabled=true; btn.classList.add('slicing');
+    inner.innerHTML='<div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0;border-top-color:#aaa"></div> กำลัง slice...';
     return;
   }
   const m=models.find(m=>m.id===activeModelId);
   if(m&&m.sliceResult){
-    btn.disabled=true;btn.style.opacity='1';btn.style.background='var(--surface)';
-    btn.style.color='var(--green)';btn.style.cursor='not-allowed';
-    btn.style.border='1px solid var(--green)';
+    btn.disabled=true; btn.classList.add('done');
     btn.title='ประเมินราคาแล้ว — แก้ไข settings เพื่อประเมินใหม่';
     inner.innerHTML=`✓ ${m.sliceResult.weight_g.toFixed(1)}g / ${m.sliceResult.print_time_str}`;
   } else {
-    btn.disabled=false;btn.style.opacity='1';btn.style.background='var(--orange)';
-    btn.style.color='#fff';btn.style.cursor='pointer';btn.title='';btn.style.border='none';
+    btn.disabled=false; btn.title='';
     inner.innerHTML='Estimated';
   }
 }
