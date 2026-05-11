@@ -306,6 +306,25 @@ app.post('/upload-file', fileUpload.single('file'), async (req, res) => {
   }
 });
 
+// POST /upload-slip-only — อัปโหลดสลิปแล้วคืน URL (ใช้ก่อน save order)
+app.post('/upload-slip-only', auth, slipUpload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'ไม่พบไฟล์สลิป' });
+  if (!CLOUDINARY_CLOUD_NAME) return res.status(503).json({ error: 'Cloudinary not configured' });
+  try {
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: 'image', folder: 'print3dhub/slips',
+          public_id: `slip_${req.body.orderId||Date.now()}` },
+        (error, result) => { if (error) reject(error); else resolve(result); }
+      );
+      stream.end(req.file.buffer);
+    });
+    res.json({ success: true, url: result.secure_url });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /upload-slip — ลูกค้าส่งสลิปการโอนเงิน
 app.post('/upload-slip', auth, slipUpload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'ไม่พบไฟล์สลิป' });
