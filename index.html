@@ -2868,6 +2868,19 @@ const mpAdd=document.getElementById('mp-add-btn');
 if(mpAdd){
   mpAdd.addEventListener('dragover',e=>e.preventDefault());
   mpAdd.addEventListener('drop',e=>{e.preventDefault();addModels(e.dataTransfer.files);});
+  // drag and drop บนพื้นที่ viewer ทั้งหมด
+  const uploadArea=document.getElementById('upload-area');
+  if(uploadArea){
+    uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.querySelector('.upload-drop-box').style.borderColor='var(--orange)';});
+    uploadArea.addEventListener('dragleave',e=>{uploadArea.querySelector('.upload-drop-box').style.borderColor='';});
+    uploadArea.addEventListener('drop',e=>{e.preventDefault();uploadArea.querySelector('.upload-drop-box').style.borderColor='';addModels(e.dataTransfer.files);});
+  }
+  // drag and drop บน viewer canvas (หลังอัปโหลดไฟล์แรกแล้ว)
+  const viewerWrap=document.getElementById('viewer-wrap')||document.querySelector('.viewer');
+  if(viewerWrap){
+    viewerWrap.addEventListener('dragover',e=>e.preventDefault());
+    viewerWrap.addEventListener('drop',e=>{e.preventDefault();addModels(e.dataTransfer.files);});
+  }
 }
 
 </script>
