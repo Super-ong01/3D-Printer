@@ -1552,12 +1552,12 @@ function buildMaterialGrid(){
     const available=isOn&&hasColor;
     const isFirst=i===0;
     const cls=`mat-card${!available?' disabled':''}${isFirst&&available?' on':''}`;
-    const onclick=available
-      ?`onclick="selMat(this,${m.rate},'${name}')"`
-      :`onclick="event.preventDefault();event.stopPropagation();return false" data-disabled="1"`;
     const badge=!isOn?'ปิดรับ':!hasColor?'ไม่มีสี':'';
-    const style=!available?`style="opacity:.4;cursor:not-allowed;pointer-events:all"`:'';
-    return `<div class="${cls}" ${style} ${onclick}><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div>${badge?`<span class="out-badge">${badge}</span>`:''}</div>`;
+    // disabled card ไม่มี onclick เลย — ทุก browser รวม Safari
+    if(!available){
+      return `<div class="${cls}" style="opacity:.4;cursor:not-allowed"><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div>${badge?`<span class="out-badge">${badge}</span>`:''}</div>`;
+    }
+    return `<div class="${cls}" onclick="selMat(this,${m.rate},'${name}')"><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div></div>`;
   }).join('');
   const firstOn=Object.entries(mats).find(([name,m])=>m.on!==false&&hasAvailableColor(name));
   if(firstOn) selMatData(firstOn[1].rate,firstOn[0]);
@@ -1848,15 +1848,6 @@ async function submitOrder(){
   clearSlip();
   activeCoupon=null;
 }
-
-// Global click interceptor สำหรับ disabled mat-card (Safari fix)
-document.addEventListener('click', function(e){
-  const card=e.target.closest('.mat-card');
-  if(card && (card.classList.contains('disabled')||card.dataset.disabled)){
-    e.preventDefault(); e.stopImmediatePropagation();
-    return false;
-  }
-}, true); // useCapture=true เพื่อ intercept ก่อน onclick ทุกตัว
 
 function updatePaymentDisplay(){
   const method=document.getElementById('o-payment')?.value||'promptpay';
