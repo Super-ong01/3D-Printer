@@ -2731,13 +2731,14 @@ function updateEstimateBtn(){
   }
   const m=models.find(m=>m.id===activeModelId);
   if(m&&m.sliceResult){
-    btn.disabled=true;btn.style.opacity='0.6';btn.style.background='var(--border)';
-    btn.style.color='var(--muted)';btn.style.cursor='not-allowed';
-    btn.title='แก้ไข settings ก่อนเพื่อ Estimate ใหม่';
+    btn.disabled=true;btn.style.opacity='1';btn.style.background='var(--surface)';
+    btn.style.color='var(--green)';btn.style.cursor='not-allowed';
+    btn.style.border='1px solid var(--green)';
+    btn.title='ประเมินราคาแล้ว — แก้ไข settings เพื่อประเมินใหม่';
     inner.innerHTML=`✓ ${m.sliceResult.weight_g.toFixed(1)}g / ${m.sliceResult.print_time_str}`;
   } else {
     btn.disabled=false;btn.style.opacity='1';btn.style.background='var(--orange)';
-    btn.style.color='#fff';btn.style.cursor='pointer';btn.title='';
+    btn.style.color='#fff';btn.style.cursor='pointer';btn.title='';btn.style.border='none';
     inner.innerHTML='Estimated';
   }
 }
