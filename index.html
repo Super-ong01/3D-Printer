@@ -1552,7 +1552,9 @@ function buildMaterialGrid(){
     const available=isOn&&hasColor;
     const isFirst=i===0;
     const cls=`mat-card${!available?' disabled':''}${isFirst&&available?' on':''}`;
-    const onclick=available?`onclick="selMat(this,${m.rate},'${name}')"`:`onclick="event.preventDefault();event.stopPropagation();return false"`;
+    const onclick=available
+      ?`onclick="selMat(this,${m.rate},'${name}')"`
+      :`onclick="event.preventDefault();event.stopPropagation();return false" data-disabled="1"`;
     const badge=!isOn?'ปิดรับ':!hasColor?'ไม่มีสี':'';
     const style=!available?`style="opacity:.4;cursor:not-allowed;pointer-events:all"`:'';
     return `<div class="${cls}" ${style} ${onclick}><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div>${badge?`<span class="out-badge">${badge}</span>`:''}</div>`;
@@ -1597,7 +1599,7 @@ function selTech(t,el){
   buildMaterialGrid();recalc();
 }
 function selMat(el,r,name){
-  if(el.classList.contains('disabled')||!r||!name) return;
+  if(el.classList.contains('disabled')||el.dataset.disabled||!r||!name) return;
   document.querySelectorAll('.mat-card').forEach(c=>c.classList.remove('on'));
   el.classList.add('on');
   selMatData(r,name);
@@ -1847,7 +1849,15 @@ async function submitOrder(){
   activeCoupon=null;
 }
 
-/* ============ PROMPTPAY QR ============ */
+// Global click interceptor สำหรับ disabled mat-card (Safari fix)
+document.addEventListener('click', function(e){
+  const card=e.target.closest('.mat-card');
+  if(card && (card.classList.contains('disabled')||card.dataset.disabled)){
+    e.preventDefault(); e.stopImmediatePropagation();
+    return false;
+  }
+}, true); // useCapture=true เพื่อ intercept ก่อน onclick ทุกตัว
+
 function updatePaymentDisplay(){
   const method=document.getElementById('o-payment')?.value||'promptpay';
   document.getElementById('payment-bank-info').style.display=method==='bank'?'block':'none';
