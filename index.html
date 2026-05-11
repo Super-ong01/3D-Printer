@@ -973,7 +973,7 @@ body.in-app{overflow:hidden}
         <button onclick="saveAddress()" style="background:var(--dark);color:#fff;padding:8px 16px;border-radius:8px;border:none;font-family:var(--font);font-size:13px;cursor:pointer;font-weight:600">บันทึกที่อยู่</button>
       </div>
       <div class="sec-div" style="margin-top:14px">การจัดส่ง & ชำระเงิน</div>
-      <div class="fg"><label>วิธีจัดส่ง</label><select id="o-ship" onchange="updateOrderTotal()"><option value="0">รับเอง (ฟรี) — MRT บางอ้อ</option><option value="50" selected>Kerry Express +฿50</option><option value="35">ไปรษณีย์ไทย +฿35</option><option value="120">Flash Express ด่วน +฿120</option><option value="0" data-grab="1">Grab (ส่งด่วน) — ชำระค่าส่งปลายทาง</option></select></div>
+      <div class="fg"><label>วิธีจัดส่ง</label><select id="o-ship" onchange="updateOrderTotal()"><option value="0">รับเอง (ฟรี) — MRT บางอ้อ</option><option value="50">ไปรษณีย์ไทย +฿50</option><option value="0" data-grab="1">Grab (ส่งด่วน) — ชำระค่าส่งปลายทาง</option></select></div>
       <div id="ship-note" style="font-size:12px;color:var(--muted);margin-top:-8px;padding:6px 10px;background:var(--surface);border-radius:6px;display:none"></div>
       <div class="fg"><label>วิธีชำระเงิน</label><select id="o-payment" onchange="updatePaymentDisplay()"><option value="bank">โอนผ่านธนาคาร</option><option value="promptpay">PromptPay</option></select></div>
       <div class="fg"><label>หมายเหตุ</label><textarea id="o-note2" style="min-height:60px" placeholder="หมายเหตุการจัดส่ง"></textarea></div>
