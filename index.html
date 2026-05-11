@@ -1552,9 +1552,10 @@ function buildMaterialGrid(){
     const available=isOn&&hasColor;
     const isFirst=i===0;
     const cls=`mat-card${!available?' disabled':''}${isFirst&&available?' on':''}`;
-    const onclick=available?`onclick="selMat(this,${m.rate},'${name}')"`:'';
+    const onclick=available?`onclick="selMat(this,${m.rate},'${name}')"`:`onclick="event.preventDefault();event.stopPropagation();return false"`;
     const badge=!isOn?'ปิดรับ':!hasColor?'ไม่มีสี':'';
-    return `<div class="${cls}" ${onclick}><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div>${badge?`<span class="out-badge">${badge}</span>`:''}</div>`;
+    const style=!available?`style="opacity:.4;cursor:not-allowed;pointer-events:all"`:'';
+    return `<div class="${cls}" ${style} ${onclick}><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div>${badge?`<span class="out-badge">${badge}</span>`:''}</div>`;
   }).join('');
   const firstOn=Object.entries(mats).find(([name,m])=>m.on!==false&&hasAvailableColor(name));
   if(firstOn) selMatData(firstOn[1].rate,firstOn[0]);
@@ -1595,7 +1596,12 @@ function selTech(t,el){
   S.tech=t;document.getElementById('tech-fdm').classList.toggle('on',t==='fdm');document.getElementById('tech-sla').classList.toggle('on',t==='sla');
   buildMaterialGrid();recalc();
 }
-function selMat(el,r,name){document.querySelectorAll('.mat-card').forEach(c=>c.classList.remove('on'));el.classList.add('on');selMatData(r,name);}
+function selMat(el,r,name){
+  if(el.classList.contains('disabled')||!r||!name) return;
+  document.querySelectorAll('.mat-card').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  selMatData(r,name);
+}
 function selMatData(r,name){
   S.mat=r;S.matName=name;
   document.getElementById('mat-tag').textContent='฿'+r.toFixed(2)+'/g';
