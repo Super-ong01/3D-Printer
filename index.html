@@ -485,6 +485,69 @@ body.in-app{overflow:hidden}
 .mp-qty-btn:hover{border-color:var(--orange);color:var(--orange)}
 .mp-qty-num{font-size:11px;font-weight:600;color:var(--text);min-width:14px;text-align:center}
 
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+  /* Landing */
+  .hero h1{font-size:2rem}
+  .hero p{font-size:15px}
+  .hero-btns{flex-direction:column;align-items:center;gap:10px}
+  .stats-row{grid-template-columns:1fr 1fr;gap:0}
+  .stat-box{padding:1rem .5rem;font-size:12px}
+  .stat-num{font-size:18px!important}
+  .steps-grid{grid-template-columns:1fr}
+  .mat-cards-l{grid-template-columns:1fr 1fr}
+  .how-section,.faq-section,.mat-section-inner{padding:2rem 1rem}
+
+  /* App layout — ซ่อน sidebar ใน mobile */
+  .sidebar{display:none}
+  .app-wrap{flex-direction:column}
+
+  /* Print page — stack viewer + settings */
+  .print-layout{flex-direction:column!important;height:auto!important}
+  .viewer-col{height:50vh;min-height:250px}
+  .settings-col{width:100%!important;min-width:0!important;height:auto;overflow-y:visible}
+  .models-panel{width:100%!important;min-width:0!important;height:auto;max-height:200px;flex-direction:row;flex-wrap:wrap}
+  .mp-body{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;padding:8px;overflow-x:auto}
+  .mp-card{min-width:140px;margin-bottom:0}
+
+  /* Bottom bar */
+  .bottom-bar{flex-wrap:wrap;gap:6px;padding:8px 12px;height:auto}
+  .bottom-bar .bb-price{font-size:18px}
+
+  /* Order modal */
+  .order-modal-inner{width:95vw;max-height:90vh}
+  .cs{padding:12px}
+
+  /* History table */
+  .hist-table th:nth-child(3),.hist-table td:nth-child(3),
+  .hist-table th:nth-child(4),.hist-table td:nth-child(4),
+  .hist-table th:nth-child(5),.hist-table td:nth-child(5){display:none}
+  .hist-page{padding:1rem}
+
+  /* Admin */
+  .admin-page{padding:1rem}
+  .admin-stats-grid{grid-template-columns:1fr 1fr}
+  .admin-layout{flex-direction:column}
+  .admin-sidebar{width:100%!important;flex-direction:row;overflow-x:auto;border-right:none;border-bottom:1px solid var(--border)}
+  .admin-content{padding:1rem}
+  .hist-table th:nth-child(3),.hist-table td:nth-child(3){display:none}
+
+  /* Nav */
+  .nav-logo{font-size:16px}
+  .nav-r{gap:6px}
+  .nav-r .btn{padding:6px 12px;font-size:12px}
+
+  /* Contact section */
+  .contact-btns{flex-direction:column;align-items:center}
+}
+
+/* Mobile bottom nav */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:100;padding:6px 0}
+.mobile-nav-items{display:flex;justify-content:space-around}
+.mobile-nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 8px;cursor:pointer;color:var(--muted);font-size:10px;font-weight:600;border:none;background:none;font-family:var(--font)}
+.mobile-nav-item.on{color:var(--orange)}
+@media(max-width:768px){.mobile-nav{display:block}}
 </style>
 </head>
 <body>
@@ -1443,6 +1506,12 @@ window.addEventListener('popstate',(e)=>{
     if(er){ er.style.display='none'; er.textContent=''; }
   }
 });
+function updateMobileNav(section){
+  document.querySelectorAll('.mobile-nav-item').forEach(b=>b.classList.remove('on'));
+  const map={print:0,orders:1,quotes:2};
+  const items=document.querySelectorAll('.mobile-nav-item');
+  if(map[section]!==undefined) items[map[section]]?.classList.add('on');
+}
 function showApp(section,el){
   localStorage.setItem('p3d_lastpage', section);
   showPage('pg-app');
@@ -2910,5 +2979,26 @@ if(mpAdd){
 }
 
 </script>
+<!-- Mobile Bottom Nav -->
+<div class="mobile-nav" id="mobile-nav">
+  <div class="mobile-nav-items">
+    <button class="mobile-nav-item on" onclick="showApp('print',null);updateMobileNav('print')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print
+    </button>
+    <button class="mobile-nav-item" onclick="showApp('orders',null);updateMobileNav('orders')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Orders
+    </button>
+    <button class="mobile-nav-item" onclick="showApp('quotes',null);updateMobileNav('quotes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Quotes
+    </button>
+    <button class="mobile-nav-item" id="mobile-nav-user" onclick="document.getElementById('user-menu').classList.toggle('on')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      บัญชี
+    </button>
+  </div>
+</div>
 </body>
 </html>
