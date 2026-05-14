@@ -525,9 +525,9 @@ body.in-app{overflow:hidden}
     </div>
   </div>
   <div class="stats-row">
-    <div class="stat-box"><div class="stat-num" id="landing-timer">26:57</div><div class="stat-lbl">เวลารอคิว</div></div>
     <div class="stat-box"><div class="stat-num">Bambu P1P</div><div class="stat-lbl">เครื่องพิมพ์ที่ใช้</div></div>
     <div class="stat-box"><div class="stat-num">FDM + SLA</div><div class="stat-lbl">เทคโนโลยีที่รองรับ</div></div>
+    <div class="stat-box"><div class="stat-num">MRT บางอ้อ</div><div class="stat-lbl">ที่ตั้งร้าน</div></div>
   </div>
   <div class="how-section" id="how-section">
     <div class="section-title">วิธีใช้งาน 3 ขั้นตอน</div>
@@ -542,10 +542,11 @@ body.in-app{overflow:hidden}
     <div class="mat-section-inner">
       <div class="section-title" style="color:#fff">วัสดุที่รองรับ</div>
       <div class="section-sub" style="color:rgba(255,255,255,.5)">เลือกวัสดุให้เหมาะกับงานของคุณ</div>
-      <div class="mat-cards-l">
+      <div class="mat-cards-l" id="landing-mat-grid">
         <div class="mat-showcase"><h4>PLA</h4><p>FDM — ราคาประหยัด</p><div class="mpt">฿1.50/g</div></div>
         <div class="mat-showcase"><h4>PETG</h4><p>FDM — ทนกว่า ใช้งานจริง</p><div class="mpt">฿1.80/g</div></div>
         <div class="mat-showcase"><h4>ASA</h4><p>FDM — ทนแดด UV</p><div class="mpt">฿2.20/g</div></div>
+        <div class="mat-showcase"><h4>TPU</h4><p>FDM — ยืดหยุ่น</p><div class="mpt">฿2.50/g</div></div>
         <div class="mat-showcase"><h4>Standard Resin</h4><p>SLA — ละเอียดสูง ผิวเรียบ</p><div class="mpt">฿3.50/g</div></div>
       </div>
     </div>
@@ -556,8 +557,24 @@ body.in-app{overflow:hidden}
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">รองรับไฟล์แบบไหน?<span>+</span></div><div class="faq-a">รองรับ STL, STEP, 3MF ขนาดไม่เกิน 100MB ต่อไฟล์</div></div>
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">ขนาดสูงสุดที่พิมพ์ได้?<span>+</span></div><div class="faq-a">FDM: 245×245×245mm | SLA: 192×120×245mm</div></div>
     <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">ราคาคำนวณอย่างไร?<span>+</span></div><div class="faq-a">ราคา = (น้ำหนักวัสดุ × ราคา/กรัม) + (เวลาพิมพ์ × ราคา/ชม.) ไม่มีค่าธรรมเนียมซ่อนเร้น</div></div>
-    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">ใช้เวลาจัดส่งนานแค่ไหน?<span>+</span></div><div class="faq-a">พิมพ์ 1-3 วันทำการ + จัดส่ง Kerry 2-3 วัน</div></div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">ใช้เวลาจัดส่งนานแค่ไหน?<span>+</span></div><div class="faq-a">พิมพ์ 1-3 วันทำการ + จัดส่งไปรษณีย์ไทย 2-5 วัน หรือ Grab ส่งด่วนในวันเดียวกัน</div></div>
     <div style="text-align:center;margin-top:2rem"><button class="btn btn-primary" style="padding:12px 32px;font-size:15px" id="faq-cta-btn">เริ่มใช้งานเลย →</button></div>
+  </div>
+  <div style="background:var(--card);border-top:1px solid var(--border);padding:2.5rem 1rem;text-align:center">
+    <div class="section-title" style="margin-bottom:.5rem">ติดต่อเรา</div>
+    <div style="color:var(--muted);font-size:14px;margin-bottom:1.5rem">มีคำถามหรืองานพิเศษ ทักมาได้เลยครับ</div>
+    <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap">
+      <a href="https://line.me/ti/p/skip12345" target="_blank"
+        style="display:flex;align-items:center;gap:10px;background:#06C755;color:#fff;padding:12px 24px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.02 2 11c0 3.09 1.59 5.82 4.05 7.58L5 21l3.18-1.58C9.33 19.79 10.64 20 12 20c5.52 0 10-4.02 10-9S17.52 2 12 2z"/></svg>
+        LINE: skip12345
+      </a>
+      <a href="tel:0876183448"
+        style="display:flex;align-items:center;gap:10px;background:var(--orange);color:#fff;padding:12px 24px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg>
+        087-618-3448 (อ๋อง)
+      </a>
+    </div>
   </div>
   <div class="landing-footer">© 2026 Print3DHub — บริการพิมพ์ 3D ออนไลน์ครบวงจร</div>
 </div>
@@ -1341,6 +1358,15 @@ fetch(API+'/settings/admin').then(r=>r.json()).then(data=>{
     adminSettings=applyAdminSettingsDefaults(data);
     localStorage.setItem('p3d_admin',JSON.stringify(adminSettings));
     buildMaterialGrid();buildColorRow();recalc();
+    // อัปเดต landing material grid จาก adminSettings
+    const desc={PLA:'FDM — ราคาประหยัด',PETG:'FDM — ทนกว่า ใช้งานจริง',ASA:'FDM — ทนแดด UV',TPU:'FDM — ยืดหยุ่น',Standard:'SLA — ละเอียดสูง ผิวเรียบ','H-Clear':'SLA — โปร่งใส','ABS-Like':'SLA — ทนความร้อน',Tough:'SLA — แข็งแรงพิเศษ'};
+    const grid=document.getElementById('landing-mat-grid');
+    if(grid){
+      const allMats={...adminSettings.fdmMats,...adminSettings.slaMats};
+      grid.innerHTML=Object.entries(allMats).filter(([,m])=>m.on!==false).map(([name,m])=>
+        `<div class="mat-showcase"><h4>${name}</h4><p>${desc[name]||''}</p><div class="mpt">฿${m.rate.toFixed(2)}/g</div></div>`
+      ).join('');
+    }
   }
 }).catch(()=>{});
 
