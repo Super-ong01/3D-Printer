@@ -2145,6 +2145,13 @@ async function renderOrders(){
               ${o.coupon?`<div>Coupon: <span style="color:#22c55e">${o.coupon}</span></div>`:''}
               <div>วิธีส่ง: <span style="color:var(--text)">${o.shippingMethod||'—'}</span>${o.shipping>0?` <span style="color:var(--orange)">(+฿${o.shipping})</span>`:''}</div>
               <div style="margin-top:4px;font-size:14px;font-weight:700;color:var(--text)">รวมทั้งหมด: <span style="color:var(--orange)">฿${o.price}</span></div>
+              ${o.trackingNumber?`
+                <div style="margin-top:10px;padding:10px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--green)">
+                  <div style="font-size:12px;color:var(--muted);margin-bottom:4px">🚚 เลขพัสดุ</div>
+                  <div style="font-size:16px;font-weight:700;font-family:var(--mono);color:var(--green);letter-spacing:1px">${o.trackingNumber}</div>
+                  <div style="font-size:11px;color:var(--muted);margin-top:4px">นำเลขนี้ไปตรวจสอบสถานะพัสดุได้เลยครับ</div>
+                </div>
+              `:''}
             </div>
           </div>
           <div>
@@ -2156,6 +2163,16 @@ async function renderOrders(){
     </tr>`;
   }).join('')}</tbody></table>`;
 }
+async function saveTracking(mongoId){
+  const input=document.getElementById('tracking-'+mongoId);
+  if(!input) return;
+  const trackingNumber=input.value.trim();
+  try{
+    await apiCall('PUT',`/admin/orders/${mongoId}/tracking`,{trackingNumber});
+    renderAdminOrders();
+  }catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); }
+}
+
 function toggleUserOrderDetail(id){
   const el=document.getElementById(id);
   if(el) el.style.display=el.style.display==='none'?'table-row':'none';
@@ -2279,6 +2296,18 @@ function renderAdminOrders(){
                 <div style="margin-top:8px">วันที่สั่ง: <span style="color:var(--text)">${o.date}</span></div>
                 <div>วิธีส่ง: <span style="color:var(--text)">${o.shippingMethod||'—'}</span>${o.shipping>0?` <span style="color:var(--orange)">(+฿${o.shipping})</span>`:' <span style="color:var(--green)">(ฟรี)</span>'}</div>
                 <div>ราคารวม: <span style="color:var(--orange);font-weight:700;font-size:15px">฿${o.price}</span></div>
+                <div style="margin-top:10px">
+                  <div style="font-weight:600;margin-bottom:6px;font-size:13px">🚚 เลขพัสดุ</div>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <input id="tracking-${o._id}" type="text" value="${o.trackingNumber||''}" placeholder="กรอกเลขพัสดุ" 
+                      style="flex:1;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px">
+                    <button onclick="saveTracking('${o._id}')" 
+                      style="padding:8px 14px;background:var(--orange);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
+                      บันทึก
+                    </button>
+                  </div>
+                  ${o.trackingNumber?`<div style="margin-top:6px;font-size:12px;color:var(--muted)">ปัจจุบัน: <span style="color:var(--green);font-weight:600">${o.trackingNumber}</span></div>`:''}
+                </div>
               </div>
               ${(o.slipUrl)?`
                 <div style="margin-top:12px;font-weight:700;color:var(--text)">🧾 สลิปการโอนเงิน</div>
