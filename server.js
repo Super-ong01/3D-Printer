@@ -68,6 +68,7 @@ const orderSchema = new mongoose.Schema({
   slipUploadedAt: Date, // เวลาที่ส่งสลิป
   shipping: { type: Number, default: 0 },  // ค่าส่ง
   shippingMethod: String,                   // วิธีจัดส่ง
+  trackingNumber: String,                   // เลขพัสดุ
   tech:     String,
   material: String,
   color:    String,
@@ -388,6 +389,13 @@ app.post('/upload-slip', auth, slipUpload.single('file'), async (req, res) => {
     console.error('[Slip Upload] error:', e.message);
     res.status(500).json({ error: e.message });
   }
+});
+
+// PUT /admin/orders/:id/tracking — Admin ใส่เลขพัสดุ
+app.put('/admin/orders/:id/tracking', auth, adminOnly, async (req, res) => {
+  try {
+    res.json(await Order.findByIdAndUpdate(req.params.id, { trackingNumber: req.body.trackingNumber }, { new: true }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // PUT /admin/orders/:id/confirm-payment — Admin ยืนยันการชำระเงิน
