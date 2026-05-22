@@ -1653,21 +1653,20 @@ function buildMaterialGrid(){
     const matColors=matrix[name]||{};
     return Object.keys(colors).some(hex=>matColors[hex]!==false);
   }
-  g.innerHTML=Object.entries(mats).map(([name,m],i)=>{
+  const firstAvailName=Object.entries(mats).find(([name,m])=>m.on!==false&&hasAvailableColor(name))?.[0];
+  g.innerHTML=Object.entries(mats).map(([name,m])=>{
     const isOn=m.on!==false;
     const hasColor=hasAvailableColor(name);
     const available=isOn&&hasColor;
-    const isFirst=i===0;
-    const cls=`mat-card${!available?' disabled':''}${isFirst&&available?' on':''}`;
+    const isSelected=name===firstAvailName;
+    const cls=`mat-card${!available?' disabled':''}${isSelected?' on':''}`;
     const badge=!isOn?'ปิดรับ':!hasColor?'ไม่มีสี':'';
-    // disabled card ไม่มี onclick เลย — ทุก browser รวม Safari
     if(!available){
       return `<div class="${cls}" style="opacity:.4;cursor:not-allowed"><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div>${badge?`<span class="out-badge">${badge}</span>`:''}</div>`;
     }
     return `<div class="${cls}" onclick="selMat(this,${m.rate},'${name}')"><div class="mn">${name}</div><div class="mp">฿${m.rate.toFixed(2)}/g</div></div>`;
   }).join('');
-  const firstOn=Object.entries(mats).find(([name,m])=>m.on!==false&&hasAvailableColor(name));
-  if(firstOn) selMatData(firstOn[1].rate,firstOn[0]);
+  if(firstAvailName) selMatData(mats[firstAvailName].rate,firstAvailName);
   else { S.mat=0; S.matName=''; }
 }
 function buildColorRow(){
@@ -1687,6 +1686,7 @@ function buildColorRow(){
     const firstAvail=Object.entries(colors).find(([h])=>matColors[h]!==false);
     if(firstAvail){
       S.color=firstAvail[1].name;
+      applyColor(firstAvail[0]);
       document.getElementById('clr-preview').style.background=firstAvail[0];
       document.getElementById('clr-name').textContent=firstAvail[1].name;
     }
