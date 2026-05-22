@@ -2441,7 +2441,12 @@ function toggleColorForMat(mat,hex){
   renderColorMatrix();
 }
 
-function showAddColorDialog(){document.getElementById('add-color-dialog').style.display='block';}
+function showAddColorDialog(){
+  const dialog=document.getElementById('add-color-dialog');
+  if(!dialog){alert('ไม่พบ dialog');return;}
+  dialog.style.display='block';
+  dialog.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
 
 function confirmAddColor(){
   const hex=document.getElementById('new-color-hex').value;
