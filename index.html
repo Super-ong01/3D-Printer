@@ -1055,6 +1055,7 @@ body.in-app{overflow:hidden}
       <div class="sec-div">ข้อมูลผู้สั่ง</div>
       <div class="fg"><label>ชื่อ-นามสกุล</label><input type="text" id="o-name" placeholder="ชื่อของคุณ"></div>
       <div class="fg"><label>เบอร์โทรศัพท์</label><input type="tel" id="o-phone" placeholder="08x-xxx-xxxx"></div>
+      <div class="fg"><label>อีเมล</label><input type="email" id="o-email" placeholder="email@example.com"></div>
       <div class="sec-div">ที่อยู่จัดส่ง</div>
       <div id="addr-list-wrap"></div>
       <button class="add-addr-btn" id="show-new-addr-btn" onclick="showNewAddr()">+ เพิ่มที่อยู่ใหม่</button>
@@ -1269,7 +1270,13 @@ async function fetchUserData(){
       addresses = u.addresses || [];
       setupUserNav();
       renderAddrs();
+    } else if(r.status === 401){
+      // token หมดอายุจริง — logout
+      localStorage.removeItem('p3d_token');
+      currentUser = null; authToken = null;
+      showPage('pg-landing');
     }
+    // กรณีอื่น (network error, 5xx) — ไม่ logout ใช้ข้อมูลจาก JWT ต่อไป
   }catch(e){ console.warn('fetchUserData:', e.message); }
 }
 
@@ -1912,11 +1919,9 @@ function openOrderModal(){
 function closeOrderModal(){document.getElementById('order-modal').classList.remove('on');}
 async function submitOrder(){
   if(!currentUser){alert('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ');gotoLogin();return;}
-  const n=document.getElementById('o-name').value.trim(),p=document.getElementById('o-phone').value.trim().replace(/\D/g,'');
-  const em=currentUser?.email||'';
+  const n=document.getElementById('o-name').value.trim(),p=document.getElementById('o-phone').value.trim();
   const addr=selectedAddrIdx>=0?addresses[selectedAddrIdx]?.addr:document.getElementById('o-addr')?.value.trim()||'';
   if(!n||!p||!addr){alert('กรุณากรอกชื่อ เบอร์โทร และที่อยู่จัดส่ง');return;}
-  if(!/^[0-9]{10}$/.test(p)){alert('กรุณากรอกเบอร์โทรให้ครบ 10 หลัก');return;}
   const grand=updateOrderTotal();
   const note=document.getElementById('tech-note')?.value||'';
   const fileList=models.length>1?models.map(m=>m.name).join(', '):(currentFile?.name||'(ไม่มีไฟล์)');
