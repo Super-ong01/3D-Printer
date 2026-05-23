@@ -1261,7 +1261,8 @@ function initAuth(){
         }
         fetchUserData();
         return;
-      } else {
+      }
+    } else {
         localStorage.removeItem('p3d_token');
       }
     }catch(e){
@@ -1477,18 +1478,7 @@ function showSidebarBottom(){
   }
 }
 function logout(){currentUser=null;authToken=null;localStorage.removeItem('p3d_token');localStorage.removeItem('p3d_lastpage');document.getElementById('user-menu').classList.remove('on');document.getElementById('nav-r').style.display='flex';document.getElementById('nav-user').style.display='none';showPage('pg-landing');}
-function setupUserNav(){
-  document.getElementById('nav-r').style.display='none';
-  document.getElementById('nav-user').style.display='flex';
-  const initial=(currentUser.name||'U')[0].toUpperCase();
-  document.getElementById('user-avatar').textContent=initial;
-  const sba=document.getElementById('sidebar-avatar');if(sba)sba.textContent=initial;
-  const sbn=document.getElementById('sidebar-name');if(sbn)sbn.textContent=currentUser.name;
-  document.getElementById('menu-name').textContent=currentUser.name;
-  document.getElementById('admin-menu-item').style.display=currentUser.role==='admin'?'block':'none';
-  const asi=document.getElementById('admin-sidebar-item');if(asi)asi.style.display=currentUser.role==='admin'?'flex':'none';
-  const sqb=document.getElementById('save-quote-btn');if(sqb)sqb.style.display='block';
-}
+
 function toggleUserMenu(){document.getElementById('user-menu').classList.toggle('on');}
 document.addEventListener('click',e=>{if(!e.target.closest('#user-avatar')&&!e.target.closest('#user-menu'))document.getElementById('user-menu').classList.remove('on');});
 
