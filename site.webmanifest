@@ -1,0 +1,14 @@
+{
+  "name": "Print3DHub",
+  "short_name": "Print3DHub",
+  "description": "บริการพิมพ์ 3D ออนไลน์ ประเมินราคาได้ทันที",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#E8530A",
+  "lang": "th",
+  "icons": [
+    { "src": "/favicon-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/favicon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
