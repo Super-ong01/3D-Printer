@@ -1054,7 +1054,7 @@ body.in-app{overflow:hidden}
       <div class="coupon-err" id="coupon-err"></div>
       <div class="sec-div">ข้อมูลผู้สั่ง</div>
       <div class="fg"><label>ชื่อ-นามสกุล</label><input type="text" id="o-name" placeholder="ชื่อของคุณ"></div>
-      <div class="fg"><label>เบอร์โทรศัพท์</label><input type="tel" id="o-phone" placeholder="08x-xxx-xxxx"></div>
+      <div class="fg"><label>เบอร์โทรศัพท์</label><input type="tel" id="o-phone" placeholder="08x-xxx-xxxx" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)"></div>
       <div class="sec-div">ที่อยู่จัดส่ง</div>
       <div id="addr-list-wrap"></div>
       <button class="add-addr-btn" id="show-new-addr-btn" onclick="showNewAddr()">+ เพิ่มที่อยู่ใหม่</button>
