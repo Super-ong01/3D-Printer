@@ -1054,8 +1054,8 @@ body.in-app{overflow:hidden}
       <div class="coupon-err" id="coupon-err"></div>
       <div class="sec-div">ข้อมูลผู้สั่ง</div>
       <div class="fg"><label>ชื่อ-นามสกุล</label><input type="text" id="o-name" placeholder="ชื่อของคุณ"></div>
-      <div class="fg"><label>เบอร์โทรศัพท์</label><input type="tel" id="o-phone" placeholder="08x-xxx-xxxx" pattern="[0-9]{10}" maxlength="10" inputmode="numeric"></div>
-      <div class="fg"><label>อีเมล</label><input type="email" id="o-email" placeholder="email@example.com" required></div>
+      <div class="fg"><label>เบอร์โทรศัพท์</label><input type="tel" id="o-phone" placeholder="08x-xxx-xxxx" maxlength="10" inputmode="numeric"></div>
+      <div class="fg"><label>อีเมล</label><input type="email" id="o-email" placeholder="email@example.com"></div>
       <div class="sec-div">ที่อยู่จัดส่ง</div>
       <div id="addr-list-wrap"></div>
       <button class="add-addr-btn" id="show-new-addr-btn" onclick="showNewAddr()">+ เพิ่มที่อยู่ใหม่</button>
@@ -1913,11 +1913,13 @@ function openOrderModal(){
 function closeOrderModal(){document.getElementById('order-modal').classList.remove('on');}
 async function submitOrder(){
   if(!currentUser){alert('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ');gotoLogin();return;}
-  const n=document.getElementById('o-name').value.trim(),p=document.getElementById('o-phone').value.trim();
+  const n=document.getElementById('o-name').value.trim(),p=document.getElementById('o-phone').value.trim().replace(/\D/g,'');
+  const em=document.getElementById('o-email')?.value.trim()||'';
   const addr=selectedAddrIdx>=0?addresses[selectedAddrIdx]?.addr:document.getElementById('o-addr')?.value.trim()||'';
   if(!n||!p||!addr){alert('กรุณากรอกชื่อ เบอร์โทร และที่อยู่จัดส่ง');return;}
   if(!/^[0-9]{10}$/.test(p)){alert('กรุณากรอกเบอร์โทรให้ครบ 10 หลัก');return;}
-  if(!em||!/^[^@]+@[^@]+\.[^@]+$/.test(em)){alert('กรุณากรอกอีเมลให้ถูกต้อง');return;}
+  if(!em){alert('กรุณากรอกอีเมล');return;}
+  if(!/^[^@]+@[^@]+\.[^@]+$/.test(em)){alert('กรุณากรอกอีเมลให้ถูกต้อง');return;}
   const grand=updateOrderTotal();
   const note=document.getElementById('tech-note')?.value||'';
   const fileList=models.length>1?models.map(m=>m.name).join(', '):(currentFile?.name||'(ไม่มีไฟล์)');
