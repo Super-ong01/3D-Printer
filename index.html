@@ -3,31 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Print3DHub — บริการพิมพ์ 3D ออนไลน์</title>
-<meta name="description" content="ประเมินราคาพิมพ์ 3D ออนไลน์ รับไฟล์ STL, STEP, 3MF รู้ราคาทันที สั่งพิมพ์ง่าย ส่งถึงมือ">
-<meta name="keywords" content="พิมพ์ 3D, 3D printing, ราคาพิมพ์ 3D, Print3DHub, FDM, SLA">
-<meta name="author" content="Print3DHub">
-<meta name="theme-color" content="#E8530A">
-<!-- Favicon -->
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
-<!-- Open Graph -->
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://print3dhub.net/">
-<meta property="og:title" content="Print3DHub — บริการพิมพ์ 3D ออนไลน์">
-<meta property="og:description" content="ประเมินราคาพิมพ์ 3D ออนไลน์ รับไฟล์ STL, STEP, 3MF รู้ราคาทันที สั่งพิมพ์ง่าย ส่งถึงมือ">
-<meta property="og:image" content="https://print3dhub.net/og-image.png">
-<meta property="og:locale" content="th_TH">
-<meta property="og:site_name" content="Print3DHub">
-<!-- Twitter -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Print3DHub — บริการพิมพ์ 3D ออนไลน์">
-<meta name="twitter:description" content="ประเมินราคาพิมพ์ 3D ออนไลน์ รับไฟล์ STL, STEP, 3MF รู้ราคาทันที สั่งพิมพ์ง่าย ส่งถึงมือ">
-<meta name="twitter:image" content="https://print3dhub.net/og-image.png">
+<title>Print3DHub</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 :root{
@@ -1078,8 +1054,8 @@ body.in-app{overflow:hidden}
       <div class="coupon-err" id="coupon-err"></div>
       <div class="sec-div">ข้อมูลผู้สั่ง</div>
       <div class="fg"><label>ชื่อ-นามสกุล</label><input type="text" id="o-name" placeholder="ชื่อของคุณ"></div>
-      <div class="fg"><label>เบอร์โทรศัพท์</label><input type="tel" id="o-phone" placeholder="08x-xxx-xxxx"></div>
-      <div class="fg"><label>อีเมล</label><input type="email" id="o-email" placeholder="email@example.com"></div>
+      <div class="fg"><label>เบอร์โทรศัพท์</label><input type="tel" id="o-phone" placeholder="08x-xxx-xxxx" pattern="[0-9]{10}" maxlength="10" inputmode="numeric"></div>
+      <div class="fg"><label>อีเมล</label><input type="email" id="o-email" placeholder="email@example.com" required></div>
       <div class="sec-div">ที่อยู่จัดส่ง</div>
       <div id="addr-list-wrap"></div>
       <button class="add-addr-btn" id="show-new-addr-btn" onclick="showNewAddr()">+ เพิ่มที่อยู่ใหม่</button>
@@ -1940,6 +1916,8 @@ async function submitOrder(){
   const n=document.getElementById('o-name').value.trim(),p=document.getElementById('o-phone').value.trim();
   const addr=selectedAddrIdx>=0?addresses[selectedAddrIdx]?.addr:document.getElementById('o-addr')?.value.trim()||'';
   if(!n||!p||!addr){alert('กรุณากรอกชื่อ เบอร์โทร และที่อยู่จัดส่ง');return;}
+  if(!/^[0-9]{10}$/.test(p)){alert('กรุณากรอกเบอร์โทรให้ครบ 10 หลัก');return;}
+  if(!em||!/^[^@]+@[^@]+\.[^@]+$/.test(em)){alert('กรุณากรอกอีเมลให้ถูกต้อง');return;}
   const grand=updateOrderTotal();
   const note=document.getElementById('tech-note')?.value||'';
   const fileList=models.length>1?models.map(m=>m.name).join(', '):(currentFile?.name||'(ไม่มีไฟล์)');
