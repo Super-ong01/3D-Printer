@@ -1635,7 +1635,14 @@ let S={x:0,y:0,z:0,sx:1,sy:1,sz:1,locked:true,mat:1.50,matName:'PLA',tech:'fdm',
 
 function toggleDim(){const b=document.getElementById('dim-body'),c=document.getElementById('dim-chev');const h=b.style.display==='none';b.style.display=h?'':'none';c.textContent=h?'▼':'▶';}
 function toggleLock(){S.locked=!S.locked;document.getElementById('lock-btn').classList.toggle('on',S.locked);}
-function syncDim(){['x','y','z'].forEach(a=>{document.getElementById('s'+a).value=S[a].toFixed(3);document.getElementById('sc'+a).value=S['s'+a].toFixed(3);});if(meshObj)meshObj.scale.set(S.sx,S.sz,S.sy);triggerReslice();validate();recalc();}
+function syncDim(){
+  ['x','y','z'].forEach(a=>{document.getElementById('s'+a).value=S[a].toFixed(3);document.getElementById('sc'+a).value=S['s'+a].toFixed(3);});
+  if(meshObj)meshObj.scale.set(S.sx,S.sz,S.sy);
+  // อัปเดต m.size ของ active model
+  const m=models.find(m=>m.id===activeModelId);
+  if(m) m.size=`${S.x.toFixed(1)} × ${S.y.toFixed(1)} × ${S.z.toFixed(1)}`;
+  triggerReslice();validate();recalc();
+}
 function onScale(a){const v=Math.max(.001,parseFloat(document.getElementById('sc'+a).value)||.001);if(S.locked){S.sx=S.sy=S.sz=v;S.x=orig.x*v;S.y=orig.y*v;S.z=orig.z*v;}else{S['s'+a]=v;S[a]=orig[a]*v;}clearP();syncDim();}
 function onSize(a){const v=Math.max(0,parseFloat(document.getElementById('s'+a).value)||0);if(orig[a]>0){const sc=v/orig[a];if(S.locked){S.sx=S.sy=S.sz=sc;S.x=orig.x*sc;S.y=orig.y*sc;S.z=orig.z*sc;}else{S[a]=v;S['s'+a]=sc;}}else{S[a]=v;}clearP();syncDim();}
 function setP(s,btn){S.sx=S.sy=S.sz=s;S.x=orig.x*s;S.y=orig.y*s;S.z=orig.z*s;clearP();if(btn)btn.classList.add('on');syncDim();}
@@ -1919,7 +1926,7 @@ async function submitOrder(){
     tech:(m.settings?.tech==='fdm'?'FDM':'SLA')||(S.tech==='fdm'?'FDM':'SLA'),
     material:m.settings?.matName||S.matName, color:m.settings?.color||S.color,
     infill:m.settings?.infill||S.infill, layer:(m.settings?.layerVal||S.layerVal)+'mm',
-    price:calcModelPrice(m)||0, size:m.size||'—',
+    price:calcModelPrice(m)||0, size:m.id===activeModelId?`${S.x.toFixed(1)}×${S.y.toFixed(1)}×${S.z.toFixed(1)}`:m.size||'—',
   }));
   const shipEl=document.getElementById('o-ship');
   const ship=parseInt(shipEl?.value||0);
@@ -2980,7 +2987,7 @@ function renderModelsList(){
         <div class="mp-thumb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 12l10 5 10-5"/></svg></div>
         <div class="mp-info">
           <div class="mp-name" title="${m.name}">${m.name}</div>
-          <div class="mp-size">${m.size}</div>
+          <div class="mp-size">${m.id===activeModelId?`${S.x.toFixed(1)} × ${S.y.toFixed(1)} × ${S.z.toFixed(1)} mm`:m.size||'—'}</div>
           <div class="mp-cfg">${(m.settings?.matName||S.matName)} ${(m.settings?.color||S.color)} ${(m.settings?.infill||S.infill)}% ${(m.settings?.layerVal||S.layerVal)}mm</div>
         </div>
         <button class="mp-del" onclick="event.stopPropagation();removeModel('${m.id}')">✕</button>
