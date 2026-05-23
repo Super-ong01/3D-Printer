@@ -1254,9 +1254,14 @@ function initAuth(){
         }
         fetchUserData();
         return;
+      } else {
+        // token หมดอายุจริง
+        localStorage.removeItem('p3d_token');
       }
-    }catch(e){}
-    localStorage.removeItem('p3d_token');
+    }catch(e){
+      // decode ล้มเหลว — เก็บ token ไว้ก่อน อย่าเพิ่ง remove
+      console.warn('initAuth decode error:', e.message);
+    }
   }
 }
 
@@ -1270,13 +1275,7 @@ async function fetchUserData(){
       addresses = u.addresses || [];
       setupUserNav();
       renderAddrs();
-    } else if(r.status === 401){
-      // token หมดอายุจริง — logout
-      localStorage.removeItem('p3d_token');
-      currentUser = null; authToken = null;
-      showPage('pg-landing');
     }
-    // กรณีอื่น (network error, 5xx) — ไม่ logout ใช้ข้อมูลจาก JWT ต่อไป
   }catch(e){ console.warn('fetchUserData:', e.message); }
 }
 
